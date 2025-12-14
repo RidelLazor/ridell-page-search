@@ -2,7 +2,6 @@ import { useState } from "react";
 import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
-import WebBrowser from "@/components/WebBrowser";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SearchResult {
@@ -11,15 +10,12 @@ interface SearchResult {
   description: string;
 }
 
-type ViewState = "home" | "results" | "browser";
-
 const Index = () => {
-  const [viewState, setViewState] = useState<ViewState>("home");
+  const [viewState, setViewState] = useState<"home" | "results">("home");
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [browserUrl, setBrowserUrl] = useState("");
 
   const performSearch = async (query: string, goToFirst = false) => {
     setSearchQuery(query);
@@ -40,7 +36,8 @@ const Index = () => {
         setResults(data.results);
         
         if (goToFirst && data.results.length > 0) {
-          handleResultClick(data.results[0].url);
+          // Redirect directly to first result
+          window.location.href = data.results[0].url;
         }
       } else {
         setError(data.error || "Search failed");
@@ -64,13 +61,13 @@ const Index = () => {
   };
 
   const handleNavigate = (url: string) => {
-    setBrowserUrl(url);
-    setViewState("browser");
+    // Redirect directly to the URL on the same page
+    window.location.href = url;
   };
 
   const handleResultClick = (url: string) => {
-    setBrowserUrl(url);
-    setViewState("browser");
+    // Redirect directly to the URL on the same page
+    window.location.href = url;
   };
 
   const handleGoHome = () => {
@@ -79,16 +76,6 @@ const Index = () => {
     setResults([]);
     setError(null);
   };
-
-  if (viewState === "browser") {
-    return (
-      <WebBrowser
-        url={browserUrl}
-        onClose={handleGoHome}
-        onNavigate={handleNavigate}
-      />
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
