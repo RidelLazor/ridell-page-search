@@ -1,12 +1,138 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import RidelLogo from "@/components/RidelLogo";
+import SearchBar from "@/components/SearchBar";
+import SearchResults from "@/components/SearchResults";
+import WebBrowser from "@/components/WebBrowser";
+import { supabase } from "@/integrations/supabase/client";
+
+interface SearchResult {
+  title: string;
+  url: string;
+  description: string;
+}
+
+type ViewState = "home" | "results" | "browser";
 
 const Index = () => {
+  const [viewState, setViewState] = useState<ViewState>("home");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [browserUrl, setBrowserUrl] = useState("");
+
+  const performSearch = async (query: string, goToFirst = false) => {
+    setSearchQuery(query);
+    setLoading(true);
+    setError(null);
+    setViewState("results");
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("search", {
+        body: { query },
+      });
+
+      if (fnError) {
+        throw new Error(fnError.message);
+      }
+
+      if (data.success && data.results) {
+        setResults(data.results);
+        
+        if (goToFirst && data.results.length > 0) {
+          handleResultClick(data.results[0].url);
+        }
+      } else {
+        setError(data.error || "Search failed");
+        setResults([]);
+      }
+    } catch (err) {
+      console.error("Search error:", err);
+      setError("Failed to perform search. Please try again.");
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = (query: string) => {
+    performSearch(query, false);
+  };
+
+  const handleLucky = (query: string) => {
+    performSearch(query, true);
+  };
+
+  const handleNavigate = (url: string) => {
+    setBrowserUrl(url);
+    setViewState("browser");
+  };
+
+  const handleResultClick = (url: string) => {
+    setBrowserUrl(url);
+    setViewState("browser");
+  };
+
+  const handleGoHome = () => {
+    setViewState("home");
+    setSearchQuery("");
+    setResults([]);
+    setError(null);
+  };
+
+  if (viewState === "browser") {
+    return (
+      <WebBrowser
+        url={browserUrl}
+        onClose={handleGoHome}
+        onNavigate={handleNavigate}
+      />
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      {viewState === "home" && (
+        <div className="flex flex-col items-center justify-center min-h-screen px-4">
+          <div className="mb-8">
+            <RidelLogo size="large" />
+          </div>
+          <p className="text-lg text-muted-foreground mb-8">Search the web</p>
+          <SearchBar
+            onSearch={handleSearch}
+            onLucky={handleLucky}
+            onNavigate={handleNavigate}
+          />
+        </div>
+      )}
+
+      {viewState === "results" && (
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          <div className="flex items-center gap-6 mb-6">
+            <button onClick={handleGoHome}>
+              <RidelLogo size="small" />
+            </button>
+            <div className="flex-1">
+              <SearchBar
+                onSearch={handleSearch}
+                onLucky={handleLucky}
+                onNavigate={handleNavigate}
+                initialQuery={searchQuery}
+                compact
+              />
+            </div>
+          </div>
+          
+          <div className="border-b mb-4" />
+          
+          <SearchResults
+            results={results}
+            loading={loading}
+            error={error}
+            onResultClick={handleResultClick}
+          />
+        </div>
+      )}
     </div>
   );
 };
