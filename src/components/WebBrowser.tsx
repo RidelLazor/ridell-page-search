@@ -1,7 +1,6 @@
-import { useState, useEffect, KeyboardEvent } from "react";
-import { ArrowLeft, ArrowRight, Home, RefreshCw, ExternalLink, X } from "lucide-react";
+import { useState, useEffect, KeyboardEvent, useRef } from "react";
+import { ArrowLeft, ArrowRight, Home, RefreshCw, ExternalLink, X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/use-toast";
 
 interface WebBrowserProps {
   url: string;
@@ -13,20 +12,39 @@ const WebBrowser = ({ url, onClose, onNavigate }: WebBrowserProps) => {
   const [currentUrl, setCurrentUrl] = useState(url);
   const [inputUrl, setInputUrl] = useState(url);
   const [loading, setLoading] = useState(true);
-  const [iframeError, setIframeError] = useState(false);
+  const [iframeBlocked, setIframeBlocked] = useState(false);
   const [history, setHistory] = useState<string[]>([url]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setCurrentUrl(url);
     setInputUrl(url);
     setLoading(true);
-    setIframeError(false);
+    setIframeBlocked(false);
     if (!history.includes(url)) {
       setHistory(prev => [...prev.slice(0, historyIndex + 1), url]);
       setHistoryIndex(prev => prev + 1);
     }
   }, [url]);
+
+  useEffect(() => {
+    // Set a timeout to detect if iframe is blocked
+    if (loading) {
+      loadTimeoutRef.current = setTimeout(() => {
+        // If still loading after 5 seconds, likely blocked
+        setLoading(false);
+        setIframeBlocked(true);
+      }, 5000);
+    }
+    
+    return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+    };
+  }, [loading, currentUrl]);
 
   const handleNavigate = () => {
     let newUrl = inputUrl.trim();
@@ -39,7 +57,7 @@ const WebBrowser = ({ url, onClose, onNavigate }: WebBrowserProps) => {
     setCurrentUrl(newUrl);
     setInputUrl(newUrl);
     setLoading(true);
-    setIframeError(false);
+    setIframeBlocked(false);
     setHistory(prev => [...prev.slice(0, historyIndex + 1), newUrl]);
     setHistoryIndex(prev => prev + 1);
     onNavigate(newUrl);
@@ -59,7 +77,7 @@ const WebBrowser = ({ url, onClose, onNavigate }: WebBrowserProps) => {
       setCurrentUrl(newUrl);
       setInputUrl(newUrl);
       setLoading(true);
-      setIframeError(false);
+      setIframeBlocked(false);
     }
   };
 
@@ -71,30 +89,26 @@ const WebBrowser = ({ url, onClose, onNavigate }: WebBrowserProps) => {
       setCurrentUrl(newUrl);
       setInputUrl(newUrl);
       setLoading(true);
-      setIframeError(false);
+      setIframeBlocked(false);
     }
   };
 
   const refresh = () => {
     setLoading(true);
-    setIframeError(false);
-    // Force iframe reload by setting a new key
-    const iframe = document.querySelector('iframe');
-    if (iframe) {
-      iframe.src = currentUrl;
+    setIframeBlocked(false);
+    if (iframeRef.current) {
+      iframeRef.current.src = currentUrl;
     }
   };
 
   const handleIframeLoad = () => {
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+    }
     setLoading(false);
   };
 
-  const handleIframeError = () => {
-    setLoading(false);
-    setIframeError(true);
-  };
-
-  const openInNewTab = () => {
+  const openDirectly = () => {
     window.location.href = currentUrl;
   };
 
@@ -151,9 +165,9 @@ const WebBrowser = ({ url, onClose, onNavigate }: WebBrowserProps) => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={openInNewTab}
+          onClick={openDirectly}
           className="h-8 w-8"
-          title="Open in current tab"
+          title="Go to site directly"
         >
           <ExternalLink className="h-4 w-4" />
         </Button>
@@ -169,26 +183,30 @@ const WebBrowser = ({ url, onClose, onNavigate }: WebBrowserProps) => {
 
       {/* Content area */}
       <div className="flex-1 relative">
-        {loading && (
+        {loading && !iframeBlocked && (
           <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
             <RefreshCw className="h-8 w-8 animate-spin text-primary" />
           </div>
         )}
         
-        {iframeError ? (
-          <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <p className="text-lg font-medium mb-2">This website cannot be displayed in the embedded browser</p>
-            <p className="text-muted-foreground mb-4">Some websites block iframe embedding for security reasons.</p>
-            <Button onClick={openInNewTab}>
-              Open in current tab
+        {iframeBlocked ? (
+          <div className="flex flex-col items-center justify-center h-full text-center px-4 bg-muted/20">
+            <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+            <p className="text-lg font-medium mb-2">This site can't be displayed here</p>
+            <p className="text-muted-foreground mb-6 max-w-md">
+              {new URL(currentUrl).hostname} blocks embedded viewing for security reasons.
+            </p>
+            <Button onClick={openDirectly} className="gap-2">
+              <ExternalLink className="h-4 w-4" />
+              Go to {new URL(currentUrl).hostname}
             </Button>
           </div>
         ) : (
           <iframe
+            ref={iframeRef}
             src={currentUrl}
             className="w-full h-full border-0"
             onLoad={handleIframeLoad}
-            onError={handleIframeError}
             sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
           />
         )}
