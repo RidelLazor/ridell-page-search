@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, KeyboardEvent } from "react";
-import { Search, Clock, X } from "lucide-react";
+import { Search, Clock, X, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useToast } from "@/hooks/use-toast";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -14,18 +15,83 @@ interface SearchBarProps {
 
 const MAX_HISTORY = 10;
 
+// Check if Web Speech API is available
+const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
 const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact = false }: SearchBarProps) => {
   const [query, setQuery] = useState(initialQuery);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [searchHistory, setSearchHistory] = useLocalStorage<string[]>("ridel-search-history", []);
+  const [isListening, setIsListening] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const { toast } = useToast();
 
   const isUrl = (text: string) => {
     const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i;
     return urlPattern.test(text.trim());
+  };
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = "en-US";
+
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = Array.from(event.results)
+          .map((result: any) => result[0].transcript)
+          .join("");
+        setQuery(transcript);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+        if (event.error === "not-allowed") {
+          toast({
+            title: "Microphone Access Denied",
+            description: "Please allow microphone access to use voice search.",
+            variant: "destructive",
+          });
+        }
+      };
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, [toast]);
+
+  const toggleVoiceSearch = () => {
+    if (!SpeechRecognition) {
+      toast({
+        title: "Not Supported",
+        description: "Voice search is not supported in your browser.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current?.start();
+      setIsListening(true);
+      setShowDropdown(false);
+    }
   };
 
   // Combined list: history first, then suggestions
@@ -107,6 +173,11 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
     setShowDropdown(false);
     setSuggestions([]);
 
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
+
     if (isUrl(trimmedQuery)) {
       const url = trimmedQuery.startsWith("http") ? trimmedQuery : `https://${trimmedQuery}`;
       onNavigate(url);
@@ -166,12 +237,29 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
           }}
           onFocus={() => setShowDropdown(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search RidelL or type a URL"
-          className="w-full py-3 pl-12 pr-4 text-base bg-background border border-border rounded-full shadow-sm hover:shadow-md focus:shadow-md focus:outline-none focus:ring-1 focus:ring-primary/20 transition-shadow"
+          placeholder={isListening ? "Listening..." : "Search RidelL or type a URL"}
+          className={`w-full py-3 pl-12 pr-12 text-base bg-background border border-border rounded-full shadow-sm hover:shadow-md focus:shadow-md focus:outline-none focus:ring-1 focus:ring-primary/20 transition-shadow ${
+            isListening ? "ring-2 ring-red-500/50" : ""
+          }`}
         />
+        
+        {/* Voice Search Button */}
+        <button
+          onClick={toggleVoiceSearch}
+          className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${
+            isListening ? "text-red-500" : "text-muted-foreground hover:text-foreground"
+          }`}
+          aria-label={isListening ? "Stop listening" : "Start voice search"}
+        >
+          {isListening ? (
+            <MicOff className="h-5 w-5 animate-pulse" />
+          ) : (
+            <Mic className="h-5 w-5" />
+          )}
+        </button>
 
         {/* Dropdown with history and suggestions */}
-        {showDropdown && dropdownItems.length > 0 && (
+        {showDropdown && dropdownItems.length > 0 && !isListening && (
           <div
             ref={dropdownRef}
             className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden z-50"
