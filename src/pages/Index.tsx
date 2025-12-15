@@ -2,6 +2,7 @@ import { useState } from "react";
 import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
+import ThemeToggle from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SearchResult {
@@ -79,8 +80,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Chat with Ridel AI Button */}
-      <div className="absolute top-4 right-4">
+      {/* Top bar with Chat button and Theme toggle */}
+      <div className="absolute top-4 right-4 flex items-center gap-3">
+        <ThemeToggle />
         <a
           href="https://ridelai.lovable.app/"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-medium text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
