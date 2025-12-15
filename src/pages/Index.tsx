@@ -79,6 +79,22 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Chat with Ridel AI Button */}
+      <div className="absolute top-4 right-4">
+        <a
+          href="https://ridelai.lovable.app/"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-medium text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+          style={{
+            background: "linear-gradient(135deg, #4285F4 0%, #EA4335 33%, #FBBC05 66%, #34A853 100%)",
+          }}
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+          </svg>
+          Chat with Ridel AI
+        </a>
+      </div>
+
       {viewState === "home" && (
         <div className="flex flex-col items-center justify-center min-h-screen px-4">
           <div className="mb-8">
