@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { Bookmark } from "lucide-react";
 import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
 import ThemeToggle from "@/components/ThemeToggle";
+import BookmarksPanel from "@/components/BookmarksPanel";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SearchResult {
@@ -17,6 +19,7 @@ const Index = () => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showBookmarks, setShowBookmarks] = useState(false);
 
   const performSearch = async (query: string, goToFirst = false) => {
     setSearchQuery(query);
@@ -37,7 +40,6 @@ const Index = () => {
         setResults(data.results);
         
         if (goToFirst && data.results.length > 0) {
-          // Redirect directly to first result
           window.location.href = data.results[0].url;
         }
       } else {
@@ -62,12 +64,10 @@ const Index = () => {
   };
 
   const handleNavigate = (url: string) => {
-    // Redirect directly to the URL on the same page
     window.location.href = url;
   };
 
   const handleResultClick = (url: string) => {
-    // Redirect directly to the URL on the same page
     window.location.href = url;
   };
 
@@ -80,8 +80,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar with Chat button and Theme toggle */}
+      {/* Top bar with Bookmarks, Theme toggle, and Chat button */}
       <div className="absolute top-4 right-4 flex items-center gap-3">
+        <button
+          onClick={() => setShowBookmarks(true)}
+          className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-secondary hover:bg-secondary/80 transition-all duration-300 hover:scale-105"
+          aria-label="Bookmarks"
+        >
+          <Bookmark className="h-5 w-5" />
+        </button>
         <ThemeToggle />
         <a
           href="https://ridelai.lovable.app/"
@@ -138,6 +145,12 @@ const Index = () => {
           />
         </div>
       )}
+
+      <BookmarksPanel
+        isOpen={showBookmarks}
+        onClose={() => setShowBookmarks(false)}
+        onNavigate={handleNavigate}
+      />
     </div>
   );
 };

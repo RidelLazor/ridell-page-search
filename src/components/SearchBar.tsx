@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, KeyboardEvent } from "react";
-import { Search } from "lucide-react";
+import { Search, Clock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -11,18 +12,34 @@ interface SearchBarProps {
   compact?: boolean;
 }
 
+const MAX_HISTORY = 10;
+
 const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact = false }: SearchBarProps) => {
   const [query, setQuery] = useState(initialQuery);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [searchHistory, setSearchHistory] = useLocalStorage<string[]>("ridel-search-history", []);
   const inputRef = useRef<HTMLInputElement>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isUrl = (text: string) => {
     const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i;
     return urlPattern.test(text.trim());
   };
+
+  // Combined list: history first, then suggestions
+  const dropdownItems = query.trim().length < 2
+    ? searchHistory.slice(0, 5).map((h) => ({ text: h, isHistory: true }))
+    : [
+        ...searchHistory
+          .filter((h) => h.toLowerCase().includes(query.toLowerCase()))
+          .slice(0, 3)
+          .map((h) => ({ text: h, isHistory: true })),
+        ...suggestions
+          .filter((s) => !searchHistory.some((h) => h.toLowerCase() === s.toLowerCase()))
+          .map((s) => ({ text: s, isHistory: false })),
+      ];
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -51,12 +68,12 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(e.target as Node) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
         inputRef.current &&
         !inputRef.current.contains(e.target as Node)
       ) {
-        setShowSuggestions(false);
+        setShowDropdown(false);
       }
     };
 
@@ -64,17 +81,37 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const addToHistory = (searchQuery: string) => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed || isUrl(trimmed)) return;
+
+    setSearchHistory((prev) => {
+      const filtered = prev.filter((h) => h.toLowerCase() !== trimmed.toLowerCase());
+      return [trimmed, ...filtered].slice(0, MAX_HISTORY);
+    });
+  };
+
+  const removeFromHistory = (item: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSearchHistory((prev) => prev.filter((h) => h !== item));
+  };
+
+  const clearHistory = () => {
+    setSearchHistory([]);
+  };
+
   const handleSubmit = (searchQuery?: string) => {
     const trimmedQuery = (searchQuery || query).trim();
     if (!trimmedQuery) return;
 
-    setShowSuggestions(false);
+    setShowDropdown(false);
     setSuggestions([]);
 
     if (isUrl(trimmedQuery)) {
       const url = trimmedQuery.startsWith("http") ? trimmedQuery : `https://${trimmedQuery}`;
       onNavigate(url);
     } else {
+      addToHistory(trimmedQuery);
       onSearch(trimmedQuery);
     }
   };
@@ -82,33 +119,34 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
   const handleLucky = () => {
     const trimmedQuery = query.trim();
     if (!trimmedQuery) return;
-    setShowSuggestions(false);
+    setShowDropdown(false);
+    addToHistory(trimmedQuery);
     onLucky(trimmedQuery);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      if (selectedIndex >= 0 && suggestions[selectedIndex]) {
-        setQuery(suggestions[selectedIndex]);
-        handleSubmit(suggestions[selectedIndex]);
+      if (selectedIndex >= 0 && dropdownItems[selectedIndex]) {
+        setQuery(dropdownItems[selectedIndex].text);
+        handleSubmit(dropdownItems[selectedIndex].text);
       } else {
         handleSubmit();
       }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev));
+      setSelectedIndex((prev) => (prev < dropdownItems.length - 1 ? prev + 1 : prev));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
     } else if (e.key === "Escape") {
-      setShowSuggestions(false);
+      setShowDropdown(false);
       setSelectedIndex(-1);
     }
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setQuery(suggestion);
-    handleSubmit(suggestion);
+  const handleItemClick = (text: string) => {
+    setQuery(text);
+    handleSubmit(text);
   };
 
   return (
@@ -123,33 +161,56 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
-            setShowSuggestions(true);
+            setShowDropdown(true);
             setSelectedIndex(-1);
           }}
-          onFocus={() => setShowSuggestions(true)}
+          onFocus={() => setShowDropdown(true)}
           onKeyDown={handleKeyDown}
           placeholder="Search RidelL or type a URL"
           className="w-full py-3 pl-12 pr-4 text-base bg-background border border-border rounded-full shadow-sm hover:shadow-md focus:shadow-md focus:outline-none focus:ring-1 focus:ring-primary/20 transition-shadow"
         />
 
-        {/* Suggestions dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
+        {/* Dropdown with history and suggestions */}
+        {showDropdown && dropdownItems.length > 0 && (
           <div
-            ref={suggestionsRef}
+            ref={dropdownRef}
             className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-2xl shadow-lg overflow-hidden z-50"
           >
-            {suggestions.map((suggestion, index) => (
+            {searchHistory.length > 0 && query.trim().length < 2 && (
+              <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+                <span className="text-xs text-muted-foreground font-medium">Recent searches</span>
+                <button
+                  onClick={clearHistory}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+            {dropdownItems.map((item, index) => (
               <button
-                key={suggestion}
-                onClick={() => handleSuggestionClick(suggestion)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${
+                key={`${item.text}-${index}`}
+                onClick={() => handleItemClick(item.text)}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors group/item ${
                   index === selectedIndex
                     ? "bg-accent text-accent-foreground"
                     : "hover:bg-accent/50"
                 }`}
               >
-                <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span>{suggestion}</span>
+                {item.isHistory ? (
+                  <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                ) : (
+                  <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                )}
+                <span className="flex-1 truncate">{item.text}</span>
+                {item.isHistory && (
+                  <button
+                    onClick={(e) => removeFromHistory(item.text, e)}
+                    className="p-1 rounded-full hover:bg-destructive/20 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                  >
+                    <X className="h-3 w-3 text-muted-foreground" />
+                  </button>
+                )}
               </button>
             ))}
           </div>
