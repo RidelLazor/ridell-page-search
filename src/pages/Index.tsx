@@ -8,6 +8,10 @@ import BookmarksPanel from "@/components/BookmarksPanel";
 import SafeSearchToggle from "@/components/SafeSearchToggle";
 import QuickShortcuts from "@/components/QuickShortcuts";
 import AISummary from "@/components/AISummary";
+import TrendingSearches from "@/components/TrendingSearches";
+import SearchTabs, { SearchTab } from "@/components/SearchTabs";
+import DateFilter, { DateRange } from "@/components/DateFilter";
+import ImageResults from "@/components/ImageResults";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,14 +22,24 @@ interface SearchResult {
   description: string;
 }
 
+interface ImageResult {
+  title: string;
+  url: string;
+  thumbnail: string;
+  source: string;
+}
+
 const Index = () => {
   const [viewState, setViewState] = useState<"home" | "results">("home");
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [imageResults, setImageResults] = useState<ImageResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [safeSearch] = useLocalStorage("ridel-safe-search", true);
+  const [activeTab, setActiveTab] = useState<SearchTab>("all");
+  const [dateRange, setDateRange] = useState<DateRange>("any");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Keyboard shortcuts
@@ -42,35 +56,51 @@ const Index = () => {
     onToggleBookmarks: toggleBookmarks,
   });
 
-  const performSearch = async (query: string, goToFirst = false) => {
+  const performSearch = async (query: string, goToFirst = false, tab: SearchTab = activeTab, date: DateRange = dateRange) => {
     setSearchQuery(query);
     setLoading(true);
     setError(null);
     setViewState("results");
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("search", {
-        body: { query, safeSearch },
-      });
+      if (tab === "images") {
+        const { data, error: fnError } = await supabase.functions.invoke("image-search", {
+          body: { query, safeSearch },
+        });
 
-      if (fnError) {
-        throw new Error(fnError.message);
-      }
+        if (fnError) throw new Error(fnError.message);
 
-      if (data.success && data.results) {
-        setResults(data.results);
-        
-        if (goToFirst && data.results.length > 0) {
-          window.location.href = data.results[0].url;
+        if (data.success && data.results) {
+          setImageResults(data.results);
+          setResults([]);
+        } else {
+          setError(data.error || "Image search failed");
+          setImageResults([]);
         }
       } else {
-        setError(data.error || "Search failed");
-        setResults([]);
+        const { data, error: fnError } = await supabase.functions.invoke("search", {
+          body: { query, safeSearch, dateRange: date },
+        });
+
+        if (fnError) throw new Error(fnError.message);
+
+        if (data.success && data.results) {
+          setResults(data.results);
+          setImageResults([]);
+          
+          if (goToFirst && data.results.length > 0) {
+            window.location.href = data.results[0].url;
+          }
+        } else {
+          setError(data.error || "Search failed");
+          setResults([]);
+        }
       }
     } catch (err) {
       console.error("Search error:", err);
       setError("Failed to perform search. Please try again.");
       setResults([]);
+      setImageResults([]);
     } finally {
       setLoading(false);
     }
@@ -96,7 +126,24 @@ const Index = () => {
     setViewState("home");
     setSearchQuery("");
     setResults([]);
+    setImageResults([]);
     setError(null);
+    setActiveTab("all");
+    setDateRange("any");
+  };
+
+  const handleTabChange = (tab: SearchTab) => {
+    setActiveTab(tab);
+    if (searchQuery) {
+      performSearch(searchQuery, false, tab);
+    }
+  };
+
+  const handleDateChange = (date: DateRange) => {
+    setDateRange(date);
+    if (searchQuery && activeTab === "all") {
+      performSearch(searchQuery, false, activeTab, date);
+    }
   };
 
   return (
@@ -145,12 +192,13 @@ const Index = () => {
             inputRef={searchInputRef}
           />
           <QuickShortcuts onNavigate={handleNavigate} />
+          <TrendingSearches onSearch={handleSearch} />
         </div>
       )}
 
       {viewState === "results" && (
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-6 mb-6">
+          <div className="flex items-center gap-6 mb-4">
             <button onClick={handleGoHome}>
               <RidelLogo size="small" />
             </button>
@@ -166,16 +214,41 @@ const Index = () => {
             </div>
           </div>
           
-          <div className="border-b mb-4" />
+          <SearchTabs activeTab={activeTab} onTabChange={handleTabChange} />
           
-          <AISummary query={searchQuery} results={results} />
+          {activeTab === "all" && (
+            <div className="flex items-center gap-4 py-3 border-b border-border">
+              <DateFilter value={dateRange} onChange={handleDateChange} />
+            </div>
+          )}
           
-          <SearchResults
-            results={results}
-            loading={loading}
-            error={error}
-            onResultClick={handleResultClick}
-          />
+          {activeTab === "all" && (
+            <>
+              <AISummary query={searchQuery} results={results} />
+              <SearchResults
+                results={results}
+                loading={loading}
+                error={error}
+                onResultClick={handleResultClick}
+              />
+            </>
+          )}
+          
+          {activeTab === "images" && (
+            <ImageResults
+              results={imageResults}
+              loading={loading}
+              error={error}
+            />
+          )}
+          
+          {(activeTab === "news" || activeTab === "videos") && (
+            <div className="py-12 text-center">
+              <p className="text-muted-foreground">
+                {activeTab === "news" ? "News" : "Video"} search coming soon!
+              </p>
+            </div>
+          )}
         </div>
       )}
 
