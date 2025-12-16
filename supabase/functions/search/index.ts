@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, safeSearch = true } = await req.json();
+    const { query, safeSearch = true, dateRange = 'any' } = await req.json();
 
     if (!query || typeof query !== 'string') {
       return new Response(
@@ -20,12 +20,23 @@ serve(async (req) => {
       );
     }
 
-    console.log('Searching for:', query, 'Safe search:', safeSearch);
+    console.log('Searching for:', query, 'Safe search:', safeSearch, 'Date range:', dateRange);
 
     // Use DuckDuckGo HTML search with safe search parameter
     // kp=-2 disables safe search, kp=1 enables moderate, kp=-1 enables strict
     const safeParam = safeSearch ? '1' : '-2';
-    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kp=${safeParam}`;
+    
+    // Date filter: df=d (day), df=w (week), df=m (month), df=y (year)
+    const dateParams: Record<string, string> = {
+      'any': '',
+      'day': '&df=d',
+      'week': '&df=w',
+      'month': '&df=m',
+      'year': '&df=y',
+    };
+    const dateParam = dateParams[dateRange] || '';
+    
+    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kp=${safeParam}${dateParam}`;
     
     const response = await fetch(searchUrl, {
       headers: {
