@@ -11,6 +11,7 @@ interface SearchBarProps {
   onNavigate: (url: string) => void;
   initialQuery?: string;
   compact?: boolean;
+  inputRef?: React.RefObject<HTMLInputElement>;
 }
 
 const MAX_HISTORY = 10;
@@ -18,14 +19,15 @@ const MAX_HISTORY = 10;
 // Check if Web Speech API is available
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact = false }: SearchBarProps) => {
+const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact = false, inputRef: externalRef }: SearchBarProps) => {
   const [query, setQuery] = useState(initialQuery);
+  const internalRef = useRef<HTMLInputElement>(null);
+  const inputRef = externalRef || internalRef;
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [searchHistory, setSearchHistory] = useLocalStorage<string[]>("ridel-search-history", []);
   const [isListening, setIsListening] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const { toast } = useToast();

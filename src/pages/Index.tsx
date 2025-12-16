@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Bookmark } from "lucide-react";
 import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
 import ThemeToggle from "@/components/ThemeToggle";
 import BookmarksPanel from "@/components/BookmarksPanel";
+import SafeSearchToggle from "@/components/SafeSearchToggle";
+import QuickShortcuts from "@/components/QuickShortcuts";
+import AISummary from "@/components/AISummary";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SearchResult {
@@ -20,6 +25,22 @@ const Index = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBookmarks, setShowBookmarks] = useState(false);
+  const [safeSearch] = useLocalStorage("ridel-safe-search", true);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcuts
+  const focusSearch = useCallback(() => {
+    searchInputRef.current?.focus();
+  }, []);
+
+  const toggleBookmarks = useCallback(() => {
+    setShowBookmarks((prev) => !prev);
+  }, []);
+
+  useKeyboardShortcuts({
+    onFocusSearch: focusSearch,
+    onToggleBookmarks: toggleBookmarks,
+  });
 
   const performSearch = async (query: string, goToFirst = false) => {
     setSearchQuery(query);
@@ -29,7 +50,7 @@ const Index = () => {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke("search", {
-        body: { query },
+        body: { query, safeSearch },
       });
 
       if (fnError) {
@@ -80,12 +101,14 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar with Bookmarks, Theme toggle, and Chat button */}
+      {/* Top bar with Safe Search, Bookmarks, Theme toggle, and Chat button */}
       <div className="absolute top-4 right-4 flex items-center gap-3">
+        <SafeSearchToggle />
         <button
           onClick={() => setShowBookmarks(true)}
           className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-secondary hover:bg-secondary/80 transition-all duration-300 hover:scale-105"
-          aria-label="Bookmarks"
+          aria-label="Bookmarks (Ctrl+B)"
+          title="Bookmarks (Ctrl+B)"
         >
           <Bookmark className="h-5 w-5" />
         </button>
@@ -104,6 +127,11 @@ const Index = () => {
         </a>
       </div>
 
+      {/* Keyboard shortcuts hint */}
+      <div className="absolute bottom-4 left-4 text-xs text-muted-foreground hidden md:block">
+        <span className="opacity-60">Press</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">/</kbd> <span className="opacity-60">to search,</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">Ctrl+B</kbd> <span className="opacity-60">for bookmarks</span>
+      </div>
+
       {viewState === "home" && (
         <div className="flex flex-col items-center justify-center min-h-screen px-4">
           <div className="mb-8">
@@ -114,7 +142,9 @@ const Index = () => {
             onSearch={handleSearch}
             onLucky={handleLucky}
             onNavigate={handleNavigate}
+            inputRef={searchInputRef}
           />
+          <QuickShortcuts onNavigate={handleNavigate} />
         </div>
       )}
 
@@ -131,11 +161,14 @@ const Index = () => {
                 onNavigate={handleNavigate}
                 initialQuery={searchQuery}
                 compact
+                inputRef={searchInputRef}
               />
             </div>
           </div>
           
           <div className="border-b mb-4" />
+          
+          <AISummary query={searchQuery} results={results} />
           
           <SearchResults
             results={results}
