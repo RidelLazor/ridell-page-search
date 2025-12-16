@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query } = await req.json();
+    const { query, safeSearch = true } = await req.json();
 
     if (!query || typeof query !== 'string') {
       return new Response(
@@ -20,10 +20,12 @@ serve(async (req) => {
       );
     }
 
-    console.log('Searching for:', query);
+    console.log('Searching for:', query, 'Safe search:', safeSearch);
 
-    // Use DuckDuckGo HTML search
-    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+    // Use DuckDuckGo HTML search with safe search parameter
+    // kp=-2 disables safe search, kp=1 enables moderate, kp=-1 enables strict
+    const safeParam = safeSearch ? '1' : '-2';
+    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kp=${safeParam}`;
     
     const response = await fetch(searchUrl, {
       headers: {
@@ -45,10 +47,6 @@ serve(async (req) => {
     
     // Parse the HTML to extract search results
     const results: Array<{ title: string; url: string; description: string }> = [];
-    
-    // Match result blocks - DuckDuckGo HTML format
-    const resultRegex = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi;
-    const snippetRegex = /<a[^>]*class="result__snippet"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/a>/gi;
     
     // Extract all result links and titles
     const linkMatches = [...html.matchAll(/<a[^>]*rel="nofollow"[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi)];

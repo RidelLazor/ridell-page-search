@@ -2,3 +2,9 @@ project_id = "kpjshxyooydarthruxuh"
 
 [functions.search]
 verify_jwt = false
+
+[functions.autocomplete]
+verify_jwt = false
+
+[functions.ai-summary]
+verify_jwt = false
