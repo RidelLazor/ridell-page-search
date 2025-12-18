@@ -60,26 +60,34 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Background gradient */}
+      {/* Background gradient - light mode */}
       <div 
-        className="absolute inset-0 -z-10"
+        className="absolute inset-0 -z-10 dark:hidden"
         style={{
           background: "linear-gradient(135deg, hsl(var(--background)) 0%, hsl(217 91% 97%) 50%, hsl(var(--background)) 100%)",
         }}
       />
       
+      {/* Background gradient - dark mode (inverted) */}
+      <div 
+        className="absolute inset-0 -z-10 hidden dark:block"
+        style={{
+          background: "linear-gradient(315deg, hsl(var(--background)) 0%, hsl(217 30% 12%) 50%, hsl(var(--background)) 100%)",
+        }}
+      />
+      
       {/* Subtle pattern overlay */}
       <div 
-        className="absolute inset-0 -z-10 opacity-[0.03] dark:opacity-[0.02]"
+        className="absolute inset-0 -z-10 opacity-[0.03] dark:opacity-[0.05]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234285F4' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
         }}
       />
 
-      {/* Decorative blobs */}
-      <div className="absolute top-20 -left-32 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-20 -right-32 w-96 h-96 bg-green-500/10 rounded-full blur-3xl -z-10" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-yellow-500/5 rounded-full blur-3xl -z-10" />
+      {/* Decorative blobs - adjusted for dark mode */}
+      <div className="absolute top-20 -left-32 w-96 h-96 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl -z-10" />
+      <div className="absolute bottom-20 -right-32 w-96 h-96 bg-green-500/10 dark:bg-green-500/15 rounded-full blur-3xl -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-yellow-500/5 dark:bg-yellow-500/10 rounded-full blur-3xl -z-10" />
 
       {/* Back button */}
       <div className="p-4 relative z-10">
@@ -110,7 +118,7 @@ const Auth = () => {
               <Button
                 onClick={handleGoogleSignIn}
                 disabled={loading}
-                className="w-full h-12 bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 font-medium rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-70"
+                className="w-full h-12 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600 font-medium rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-70"
               >
                 {loading ? (
                   <>
