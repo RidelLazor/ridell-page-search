@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import RidelLogo from "@/components/RidelLogo";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { FloatingBlob, FadeIn } from "@/components/PageTransition";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -84,10 +86,19 @@ const Auth = () => {
         }}
       />
 
-      {/* Decorative blobs - adjusted for dark mode */}
-      <div className="absolute top-20 -left-32 w-96 h-96 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl -z-10" />
-      <div className="absolute bottom-20 -right-32 w-96 h-96 bg-green-500/10 dark:bg-green-500/15 rounded-full blur-3xl -z-10" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-yellow-500/5 dark:bg-yellow-500/10 rounded-full blur-3xl -z-10" />
+      {/* Decorative blobs - animated */}
+      <FloatingBlob 
+        className="absolute top-20 -left-32 w-96 h-96 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl -z-10" 
+        delay={0}
+      />
+      <FloatingBlob 
+        className="absolute bottom-20 -right-32 w-96 h-96 bg-green-500/10 dark:bg-green-500/15 rounded-full blur-3xl -z-10" 
+        delay={2}
+      />
+      <FloatingBlob 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-yellow-500/5 dark:bg-yellow-500/10 rounded-full blur-3xl -z-10" 
+        delay={4}
+      />
 
       {/* Back button */}
       <div className="p-4 relative z-10">
@@ -102,18 +113,28 @@ const Auth = () => {
 
       {/* Main content */}
       <div className="flex-1 flex items-center justify-center p-4 relative z-10">
-        <div className="w-full max-w-sm space-y-8 animate-fade-in">
+        <FadeIn className="w-full max-w-sm space-y-8" delay={0.1}>
           {/* Header */}
-          <div className="text-center space-y-2">
+          <motion.div 
+            className="text-center space-y-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
             <div className="flex justify-center mb-6">
               <RidelLogo />
             </div>
             <h1 className="text-2xl font-semibold text-foreground">Welcome back</h1>
             <p className="text-muted-foreground">Sign in to access your saved searches and bookmarks</p>
-          </div>
+          </motion.div>
 
           {/* Login card */}
-          <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-8 shadow-xl space-y-6">
+          <motion.div 
+            className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl p-8 shadow-xl space-y-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+          >
             <div className="space-y-4">
               <Button
                 onClick={handleGoogleSignIn}
@@ -163,8 +184,8 @@ const Auth = () => {
             <p className="text-xs text-center text-muted-foreground">
               By signing in, you agree to our Terms of Service and Privacy Policy
             </p>
-          </div>
-        </div>
+          </motion.div>
+        </FadeIn>
       </div>
     </div>
   );
