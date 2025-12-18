@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, KeyboardEvent } from "react";
-import { Search, Clock, X, Mic, MicOff } from "lucide-react";
+import { useState, useEffect, useRef, KeyboardEvent, useMemo } from "react";
+import { Search, Clock, X, Mic, MicOff, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -33,9 +33,18 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
   const { toast } = useToast();
 
   const isUrl = (text: string) => {
-    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i;
-    return urlPattern.test(text.trim());
+    const trimmed = text.trim();
+    // Match URLs with protocol, or domain patterns with paths
+    const urlPattern = /^(https?:\/\/)?([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(\/[^\s]*)?$/i;
+    // Also match if starts with http:// or https://
+    const hasProtocol = /^https?:\/\//i.test(trimmed);
+    // Match localhost with port
+    const isLocalhost = /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?(\/[^\s]*)?$/i.test(trimmed);
+    return urlPattern.test(trimmed) || hasProtocol || isLocalhost;
   };
+
+  // Check if current query looks like a URL for visual feedback
+  const queryIsUrl = useMemo(() => isUrl(query), [query]);
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -226,7 +235,11 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
     <div className={`w-full ${compact ? "max-w-2xl" : "max-w-xl"} mx-auto`}>
       <div className="relative group">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-          <Search className="h-5 w-5 text-muted-foreground" />
+          {queryIsUrl ? (
+            <Globe className="h-5 w-5 text-blue-500" />
+          ) : (
+            <Search className="h-5 w-5 text-muted-foreground" />
+          )}
         </div>
         <input
           ref={inputRef}
@@ -239,10 +252,10 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
           }}
           onFocus={() => setShowDropdown(true)}
           onKeyDown={handleKeyDown}
-          placeholder={isListening ? "Listening..." : "Search RidelL or type a URL"}
-          className={`w-full py-3 pl-12 pr-12 text-base bg-background border border-border rounded-full shadow-sm hover:shadow-md focus:shadow-md focus:outline-none focus:ring-1 focus:ring-primary/20 transition-shadow ${
+          placeholder={isListening ? "Listening..." : "Search or enter URL (https://...)"}
+          className={`w-full py-3 pl-12 pr-12 text-base bg-background border border-border rounded-full shadow-sm hover:shadow-md focus:shadow-md focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all ${
             isListening ? "ring-2 ring-red-500/50" : ""
-          }`}
+          } ${queryIsUrl ? "border-blue-500/50" : ""}`}
         />
         
         {/* Voice Search Button */}
