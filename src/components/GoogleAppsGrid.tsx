@@ -56,8 +56,6 @@ const GoogleAppsGrid = () => {
                 <a
                   key={app.name}
                   href={app.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-secondary transition-colors"
                   onClick={() => setIsOpen(false)}
                 >
