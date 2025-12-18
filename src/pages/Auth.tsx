@@ -6,12 +6,13 @@ import RidelLogo from "@/components/RidelLogo";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { FloatingBlob, FadeIn } from "@/components/PageTransition";
+import { ParallaxBlob, FadeIn, useMouseParallax } from "@/components/PageTransition";
 
 const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const mousePosition = useMouseParallax(0.03);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -86,18 +87,27 @@ const Auth = () => {
         }}
       />
 
-      {/* Decorative blobs - animated */}
-      <FloatingBlob 
+      {/* Decorative blobs - with parallax */}
+      <ParallaxBlob 
         className="absolute top-20 -left-32 w-96 h-96 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl -z-10" 
         delay={0}
+        parallaxStrength={1.5}
+        mouseX={mousePosition.x}
+        mouseY={mousePosition.y}
       />
-      <FloatingBlob 
+      <ParallaxBlob 
         className="absolute bottom-20 -right-32 w-96 h-96 bg-green-500/10 dark:bg-green-500/15 rounded-full blur-3xl -z-10" 
         delay={2}
+        parallaxStrength={-1}
+        mouseX={mousePosition.x}
+        mouseY={mousePosition.y}
       />
-      <FloatingBlob 
+      <ParallaxBlob 
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-yellow-500/5 dark:bg-yellow-500/10 rounded-full blur-3xl -z-10" 
         delay={4}
+        parallaxStrength={0.5}
+        mouseX={mousePosition.x}
+        mouseY={mousePosition.y}
       />
 
       {/* Back button */}

@@ -265,7 +265,8 @@ const Index = () => {
           {/* Top bar for home view */}
           <motion.div 
             className="absolute top-4 right-4 flex items-center gap-3 z-20"
-            animate={isExiting ? { scale: 1.5, opacity: 0 } : { scale: 1, opacity: 1 }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={isExiting ? { scale: 1.5, opacity: 0 } : { scale: 1, opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
           >
             {renderControls()}
@@ -274,29 +275,61 @@ const Index = () => {
           {/* Keyboard shortcuts hint */}
           <motion.div 
             className="absolute bottom-4 left-4 text-xs text-muted-foreground hidden md:block"
+            initial={{ opacity: 0, y: 20 }}
             animate={isExiting ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
           >
             <span className="opacity-60">Press</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">/</kbd> <span className="opacity-60">to search,</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">Ctrl+B</kbd> <span className="opacity-60">for bookmarks</span>
           </motion.div>
 
           <motion.div 
             className="flex flex-col items-center justify-center min-h-screen px-4"
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={isExiting ? { scale: 1.1, opacity: 0 } : { scale: 1, opacity: 1 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
           >
-            <div className="mb-8">
+            <motion.div 
+              className="mb-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.4 }}
+            >
               <RidelLogo size="large" />
-            </div>
-            <p className="text-lg text-muted-foreground mb-8">Search the web</p>
-            <SearchBar
-              onSearch={handleSearch}
-              onLucky={handleLucky}
-              onNavigate={handleNavigate}
-              inputRef={searchInputRef}
-            />
-            <QuickShortcuts onNavigate={handleNavigate} />
-            <TrendingSearches onSearch={handleSearch} />
+            </motion.div>
+            <motion.p 
+              className="text-lg text-muted-foreground mb-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+            >
+              Search the web
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+            >
+              <SearchBar
+                onSearch={handleSearch}
+                onLucky={handleLucky}
+                onNavigate={handleNavigate}
+                inputRef={searchInputRef}
+              />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
+            >
+              <QuickShortcuts onNavigate={handleNavigate} />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
+            >
+              <TrendingSearches onSearch={handleSearch} />
+            </motion.div>
           </motion.div>
         </>
       )}
