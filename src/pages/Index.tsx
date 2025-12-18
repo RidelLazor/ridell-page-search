@@ -13,6 +13,7 @@ import TrendingSearches from "@/components/TrendingSearches";
 import SearchTabs, { SearchTab } from "@/components/SearchTabs";
 import DateFilter, { DateRange } from "@/components/DateFilter";
 import ImageResults from "@/components/ImageResults";
+import GoogleAppsGrid from "@/components/GoogleAppsGrid";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { supabase } from "@/integrations/supabase/client";
@@ -166,7 +167,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar with Safe Search, Bookmarks, Theme toggle, Auth and Chat button */}
+      {/* Top bar with Safe Search, Bookmarks, Theme toggle, Apps grid, Auth and Chat button */}
       <div className="absolute top-4 right-4 flex items-center gap-3">
         <SafeSearchToggle />
         <button
@@ -178,20 +179,19 @@ const Index = () => {
           <Bookmark className="h-5 w-5" />
         </button>
         <ThemeToggle />
+        <GoogleAppsGrid />
         {user ? (
-          <button
-            onClick={async () => {
-              await supabase.auth.signOut();
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary hover:bg-secondary/80 text-sm font-medium transition-all duration-300"
+          <Link
+            to="/profile"
+            className="inline-flex items-center justify-center w-10 h-10 rounded-full overflow-hidden hover:ring-2 ring-primary transition-all duration-300"
+            title="View profile"
           >
             <img 
               src={user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email}`} 
               alt="Profile" 
-              className="w-6 h-6 rounded-full"
+              className="w-10 h-10 rounded-full"
             />
-            Sign out
-          </button>
+          </Link>
         ) : (
           <Link
             to="/auth"
