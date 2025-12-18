@@ -23,7 +23,11 @@ const GOOGLE_APPS: AppItem[] = [
   { name: "Translate", icon: "https://ssl.gstatic.com/images/branding/product/1x/translate_32dp.png", url: "https://translate.google.com" },
 ];
 
-const GoogleAppsGrid = () => {
+interface GoogleAppsGridProps {
+  openDirection?: "left" | "right";
+}
+
+const GoogleAppsGrid = ({ openDirection = "left" }: GoogleAppsGridProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +53,7 @@ const GoogleAppsGrid = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-12 w-80 bg-popover border border-border rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in-0 zoom-in-95">
+        <div className={`absolute top-12 w-80 bg-popover border border-border rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in-0 zoom-in-95 ${openDirection === "right" ? "left-0" : "right-0"}`}>
           <div className="p-4 max-h-96 overflow-y-auto">
             <div className="grid grid-cols-3 gap-2">
               {GOOGLE_APPS.map((app) => (
