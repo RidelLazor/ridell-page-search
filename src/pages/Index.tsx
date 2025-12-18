@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Bookmark } from "lucide-react";
+import { Bookmark, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
@@ -44,6 +44,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<SearchTab>("all");
   const [dateRange, setDateRange] = useState<DateRange>("any");
   const [user, setUser] = useState<User | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Check auth state
@@ -280,8 +281,18 @@ const Index = () => {
 
       {viewState === "results" && (
         <div className="flex min-h-screen">
+          {/* Sidebar toggle button (always visible) */}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="hidden md:flex fixed left-0 top-1/2 -translate-y-1/2 z-40 items-center justify-center w-6 h-12 bg-secondary hover:bg-secondary/80 rounded-r-lg border border-l-0 border-border transition-all duration-300"
+            style={{ left: sidebarCollapsed ? 0 : '3.5rem' }}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
+
           {/* Sidebar with controls */}
-          <aside className="hidden md:flex flex-col gap-3 p-3 w-14 border-r border-border bg-background/50">
+          <aside className={`hidden md:flex flex-col gap-3 p-3 border-r border-border bg-background/50 transition-all duration-300 ${sidebarCollapsed ? 'w-0 p-0 overflow-hidden border-0' : 'w-14'}`}>
             {renderControls(true, true)}
           </aside>
 
