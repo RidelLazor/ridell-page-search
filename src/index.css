@@ -99,6 +99,20 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  /* Smooth theme transition */
+  *,
+  *::before,
+  *::after {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease, fill 0.2s ease, stroke 0.2s ease, box-shadow 0.3s ease;
+  }
+
+  /* Disable transitions on page load to prevent flash */
+  .no-transitions *,
+  .no-transitions *::before,
+  .no-transitions *::after {
+    transition: none !important;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
