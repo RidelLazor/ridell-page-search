@@ -12,7 +12,15 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
   const mousePosition = useMouseParallax(0.03);
+
+  const handleBack = () => {
+    setIsExiting(true);
+    setTimeout(() => {
+      navigate("/");
+    }, 400);
+  };
 
   useEffect(() => {
     // Check if user is already logged in
@@ -62,7 +70,12 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
+    <motion.div 
+      className="min-h-screen flex flex-col relative overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: isExiting ? 0 : 1 }}
+      transition={{ duration: 0.4 }}
+    >
       {/* Background gradient - light mode */}
       <div 
         className="absolute inset-0 -z-10 dark:hidden"
@@ -111,15 +124,20 @@ const Auth = () => {
       />
 
       {/* Back button */}
-      <div className="p-4 relative z-10">
-        <Link
-          to="/"
+      <motion.div 
+        className="p-4 relative z-10"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.1, duration: 0.3 }}
+      >
+        <button
+          onClick={handleBack}
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
           <span>Back to search</span>
-        </Link>
-      </div>
+        </button>
+      </motion.div>
 
       {/* Main content */}
       <div className="flex-1 flex items-center justify-center p-4 relative z-10">
@@ -197,7 +215,7 @@ const Auth = () => {
           </motion.div>
         </FadeIn>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
