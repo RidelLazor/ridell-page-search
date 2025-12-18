@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Bookmark, ChevronLeft, ChevronRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
@@ -45,7 +46,9 @@ const Index = () => {
   const [dateRange, setDateRange] = useState<DateRange>("any");
   const [user, setUser] = useState<User | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   // Check auth state
   useEffect(() => {
@@ -166,6 +169,13 @@ const Index = () => {
     }
   };
 
+  const handleAuthNavigate = () => {
+    setIsExiting(true);
+    setTimeout(() => {
+      navigate("/auth");
+    }, 400);
+  };
+
   const renderControls = (vertical = false, iconsOnly = false) => (
     <div className={`flex ${vertical ? 'flex-col' : ''} items-center gap-3`}>
       <SafeSearchToggle />
@@ -192,8 +202,8 @@ const Index = () => {
           />
         </Link>
       ) : iconsOnly ? (
-        <Link
-          to="/auth"
+        <button
+          onClick={handleAuthNavigate}
           className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white hover:bg-gray-50 border border-gray-300 transition-all duration-300 hover:scale-105"
           title="Sign in with Google"
         >
@@ -203,10 +213,10 @@ const Index = () => {
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-        </Link>
+        </button>
       ) : (
-        <Link
-          to="/auth"
+        <button
+          onClick={handleAuthNavigate}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 font-medium text-sm shadow-sm hover:shadow transition-all duration-300 hover:scale-105"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -216,7 +226,7 @@ const Index = () => {
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
           Sign in
-        </Link>
+        </button>
       )}
       {iconsOnly ? (
         <a
@@ -253,16 +263,28 @@ const Index = () => {
       {viewState === "home" && (
         <>
           {/* Top bar for home view */}
-          <div className="absolute top-4 right-4 flex items-center gap-3">
+          <motion.div 
+            className="absolute top-4 right-4 flex items-center gap-3 z-20"
+            animate={isExiting ? { scale: 1.5, opacity: 0 } : { scale: 1, opacity: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
             {renderControls()}
-          </div>
+          </motion.div>
 
           {/* Keyboard shortcuts hint */}
-          <div className="absolute bottom-4 left-4 text-xs text-muted-foreground hidden md:block">
+          <motion.div 
+            className="absolute bottom-4 left-4 text-xs text-muted-foreground hidden md:block"
+            animate={isExiting ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <span className="opacity-60">Press</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">/</kbd> <span className="opacity-60">to search,</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">Ctrl+B</kbd> <span className="opacity-60">for bookmarks</span>
-          </div>
+          </motion.div>
 
-          <div className="flex flex-col items-center justify-center min-h-screen px-4">
+          <motion.div 
+            className="flex flex-col items-center justify-center min-h-screen px-4"
+            animate={isExiting ? { scale: 1.1, opacity: 0 } : { scale: 1, opacity: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
             <div className="mb-8">
               <RidelLogo size="large" />
             </div>
@@ -275,7 +297,7 @@ const Index = () => {
             />
             <QuickShortcuts onNavigate={handleNavigate} />
             <TrendingSearches onSearch={handleSearch} />
-          </div>
+          </motion.div>
         </>
       )}
 
