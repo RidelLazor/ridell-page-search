@@ -19,10 +19,27 @@ interface Shortcut {
 }
 
 const DEFAULT_SHORTCUTS: Shortcut[] = [
-  { id: "1", name: "YouTube", url: "https://youtube.com", favicon: "https://www.google.com/s2/favicons?domain=youtube.com&sz=64" },
-  { id: "2", name: "Gmail", url: "https://gmail.com", favicon: "https://www.google.com/s2/favicons?domain=gmail.com&sz=64" },
-  { id: "3", name: "GitHub", url: "https://github.com", favicon: "https://www.google.com/s2/favicons?domain=github.com&sz=64" },
+  { id: "1", name: "YouTube", url: "https://youtube.com", favicon: "https://www.youtube.com/favicon.ico" },
+  { id: "2", name: "Gmail", url: "https://gmail.com", favicon: "https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico" },
+  { id: "3", name: "GitHub", url: "https://github.com", favicon: "https://github.githubassets.com/favicons/favicon.svg" },
 ];
+
+const ShortcutIcon = ({ favicon, name }: { favicon?: string; name: string }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (!favicon || hasError) {
+    return <Globe className="w-6 h-6 text-muted-foreground" />;
+  }
+
+  return (
+    <img
+      src={favicon}
+      alt={name}
+      className="w-6 h-6 rounded"
+      onError={() => setHasError(true)}
+    />
+  );
+};
 
 interface QuickShortcutsProps {
   onNavigate: (url: string) => void;
@@ -39,13 +56,12 @@ const QuickShortcuts = ({ onNavigate }: QuickShortcutsProps) => {
     if (!newName.trim() || !newUrl.trim()) return;
 
     const url = newUrl.startsWith("http") ? newUrl : `https://${newUrl}`;
-    const domain = new URL(url).hostname;
-
+    
     const newShortcut: Shortcut = {
       id: Date.now().toString(),
       name: newName.trim(),
       url,
-      favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
+      favicon: `${url}/favicon.ico`,
     };
 
     setShortcuts((prev) => [...prev, newShortcut]);
@@ -68,18 +84,7 @@ const QuickShortcuts = ({ onNavigate }: QuickShortcutsProps) => {
           onClick={() => onNavigate(shortcut.url)}
         >
           <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center transition-all hover:bg-secondary/80 hover:scale-105">
-            {shortcut.favicon ? (
-              <img
-                src={shortcut.favicon}
-                alt={shortcut.name}
-                className="w-6 h-6 rounded"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                  (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
-                }}
-              />
-            ) : null}
-            <Globe className={`w-6 h-6 text-muted-foreground ${shortcut.favicon ? "hidden" : ""}`} />
+            <ShortcutIcon favicon={shortcut.favicon} name={shortcut.name} />
           </div>
           <span className="text-xs text-muted-foreground max-w-16 truncate">{shortcut.name}</span>
           <button
