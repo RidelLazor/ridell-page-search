@@ -1,13 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Bookmark, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Bookmark, ChevronLeft, ChevronRight, Loader2, History } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
-import ThemeToggle from "@/components/ThemeToggle";
 import BookmarksPanel from "@/components/BookmarksPanel";
-import SafeSearchToggle from "@/components/SafeSearchToggle";
+import SettingsDialog from "@/components/SettingsDialog";
 import QuickShortcuts from "@/components/QuickShortcuts";
 import AISummary from "@/components/AISummary";
 import TrendingSearches from "@/components/TrendingSearches";
@@ -18,6 +17,7 @@ import GoogleAppsGrid from "@/components/GoogleAppsGrid";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useTransitionSound } from "@/hooks/useTransitionSound";
+import { useSoundSettings } from "@/hooks/useSoundSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -56,6 +56,7 @@ const Index = () => {
   const [ridelButtonPosition, setRidelButtonPosition] = useState({ x: 0, y: 0 });
   const navigate = useNavigate();
   const { playWhooshSound, playClickSound } = useTransitionSound();
+  const { soundEnabled } = useSoundSettings();
 
   // Check auth state
   useEffect(() => {
@@ -86,11 +87,26 @@ const Index = () => {
     onToggleBookmarks: toggleBookmarks,
   });
 
+  const saveSearchHistory = async (query: string) => {
+    if (!user) return;
+    try {
+      await supabase.from("search_history").insert({
+        user_id: user.id,
+        query: query.trim(),
+      });
+    } catch (error) {
+      console.error("Error saving search history:", error);
+    }
+  };
+
   const performSearch = async (query: string, goToFirst = false, tab: SearchTab = activeTab, date: DateRange = dateRange) => {
     setSearchQuery(query);
     setLoading(true);
     setError(null);
     setViewState("results");
+
+    // Save to search history for signed-in users
+    saveSearchHistory(query);
 
     try {
       if (tab === "images") {
@@ -183,12 +199,12 @@ const Index = () => {
       x: rect.left + rect.width / 2,
       y: rect.top + rect.height / 2,
     });
-    playClickSound();
+    if (soundEnabled) playClickSound();
     setIsExiting(true);
     setShowTransitionOverlay(true);
     
     setTimeout(() => {
-      playWhooshSound();
+      if (soundEnabled) playWhooshSound();
     }, 100);
     
     setTimeout(() => {
@@ -203,12 +219,12 @@ const Index = () => {
       x: rect.left + rect.width / 2,
       y: rect.top + rect.height / 2,
     });
-    playClickSound();
+    if (soundEnabled) playClickSound();
     setIsExiting(true);
     setShowRidelTransition(true);
     
     setTimeout(() => {
-      playWhooshSound();
+      if (soundEnabled) playWhooshSound();
     }, 100);
     
     setTimeout(() => {
@@ -218,7 +234,7 @@ const Index = () => {
 
   const renderControls = (vertical = false, iconsOnly = false) => (
     <div className={`flex ${vertical ? 'flex-col' : ''} items-center gap-3`}>
-      <SafeSearchToggle />
+      <SettingsDialog onOpenSearchHistory={user ? () => navigate("/history") : undefined} />
       <button
         onClick={() => setShowBookmarks(true)}
         className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-secondary hover:bg-secondary/80 transition-all duration-300 hover:scale-105"
@@ -227,7 +243,16 @@ const Index = () => {
       >
         <Bookmark className="h-5 w-5" />
       </button>
-      <ThemeToggle />
+      {user && (
+        <button
+          onClick={() => navigate("/history")}
+          className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-secondary hover:bg-secondary/80 transition-all duration-300 hover:scale-105"
+          aria-label="Search History"
+          title="Search History"
+        >
+          <History className="h-5 w-5" />
+        </button>
+      )}
       <GoogleAppsGrid openDirection={vertical ? "right" : "left"} />
       {user ? (
         <Link
@@ -409,7 +434,7 @@ const Index = () => {
               </div>
               {/* Mobile controls */}
               <div className="flex md:hidden items-center gap-2">
-                <ThemeToggle />
+                <SettingsDialog />
                 <button
                   onClick={() => setShowBookmarks(true)}
                   className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-secondary"
