@@ -16,11 +16,47 @@ interface BookmarksPanelProps {
   onNavigate: (url: string) => void;
 }
 
+// Gmail-like favicon helper
+const getFaviconUrl = (url: string) => {
+  try {
+    const domain = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+  } catch {
+    return null;
+  }
+};
+
+// Get brand color based on domain
+const getBrandColor = (url: string): string => {
+  try {
+    const domain = new URL(url).hostname.toLowerCase();
+    if (domain.includes("google")) return "#4285F4";
+    if (domain.includes("youtube")) return "#FF0000";
+    if (domain.includes("facebook")) return "#1877F2";
+    if (domain.includes("twitter") || domain.includes("x.com")) return "#1DA1F2";
+    if (domain.includes("instagram")) return "#E4405F";
+    if (domain.includes("linkedin")) return "#0A66C2";
+    if (domain.includes("github")) return "#181717";
+    if (domain.includes("reddit")) return "#FF4500";
+    if (domain.includes("amazon")) return "#FF9900";
+    if (domain.includes("netflix")) return "#E50914";
+    if (domain.includes("spotify")) return "#1DB954";
+    if (domain.includes("discord")) return "#5865F2";
+    if (domain.includes("slack")) return "#4A154B";
+    if (domain.includes("notion")) return "#000000";
+    if (domain.includes("figma")) return "#F24E1E";
+    return "#6B7280";
+  } catch {
+    return "#6B7280";
+  }
+};
+
 const BookmarksPanel = ({ isOpen, onClose, onNavigate }: BookmarksPanelProps) => {
   const [bookmarks, setBookmarks] = useLocalStorage<BookmarkItem[]>("ridel-bookmarks", []);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newUrl, setNewUrl] = useState("");
+  const [imageError, setImageError] = useState<Record<string, boolean>>({});
 
   const handleAddBookmark = () => {
     if (!newTitle.trim() || !newUrl.trim()) return;
@@ -107,38 +143,65 @@ const BookmarksPanel = ({ isOpen, onClose, onNavigate }: BookmarksPanelProps) =>
                 No bookmarks yet. Add your favorite sites!
               </p>
             ) : (
-              bookmarks.map((bookmark) => (
-                <div
-                  key={bookmark.id}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 group transition-colors"
-                >
-                  <button
-                    onClick={() => onNavigate(bookmark.url)}
-                    className="flex-1 text-left"
+              bookmarks.map((bookmark) => {
+                const faviconUrl = getFaviconUrl(bookmark.url);
+                const brandColor = getBrandColor(bookmark.url);
+                const hasError = imageError[bookmark.id];
+
+                return (
+                  <div
+                    key={bookmark.id}
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 group transition-colors"
                   >
-                    <p className="font-medium text-sm truncate">{bookmark.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {bookmark.url}
-                    </p>
-                  </button>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Gmail-like favicon with fallback */}
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden"
+                      style={{ backgroundColor: hasError ? `${brandColor}20` : "transparent" }}
+                    >
+                      {faviconUrl && !hasError ? (
+                        <img
+                          src={faviconUrl}
+                          alt=""
+                          className="w-6 h-6"
+                          onError={() => setImageError((prev) => ({ ...prev, [bookmark.id]: true }))}
+                        />
+                      ) : (
+                        <span
+                          className="text-sm font-bold"
+                          style={{ color: brandColor }}
+                        >
+                          {bookmark.title.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
                     <button
                       onClick={() => onNavigate(bookmark.url)}
-                      className="p-1.5 rounded-full hover:bg-accent"
-                      title="Open"
+                      className="flex-1 text-left min-w-0"
                     >
-                      <ExternalLink className="h-4 w-4" />
+                      <p className="font-medium text-sm truncate">{bookmark.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {bookmark.url}
+                      </p>
                     </button>
-                    <button
-                      onClick={() => handleDeleteBookmark(bookmark.id)}
-                      className="p-1.5 rounded-full hover:bg-destructive/20 text-destructive"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => onNavigate(bookmark.url)}
+                        className="p-1.5 rounded-full hover:bg-accent"
+                        title="Open"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBookmark(bookmark.id)}
+                        className="p-1.5 rounded-full hover:bg-destructive/20 text-destructive"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
