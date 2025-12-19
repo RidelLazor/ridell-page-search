@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.image-search]
 verify_jwt = false
+
+[functions.trending-searches]
+verify_jwt = false

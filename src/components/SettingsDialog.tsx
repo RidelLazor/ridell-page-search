@@ -1,5 +1,6 @@
 import { Settings, Moon, Sun, Shield, ShieldCheck, Volume2, VolumeX, History, Bell, Eye, EyeOff } from "lucide-react";
 import { useTheme } from "next-themes";
+import { motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -27,13 +28,16 @@ const SettingsDialog = ({ onOpenSearchHistory }: SettingsDialogProps) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <button
-          className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-secondary hover:bg-secondary/80 transition-all duration-300 hover:scale-105"
+        <motion.button
+          className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
           aria-label="Settings"
           title="Settings"
+          whileHover={{ scale: 1.1, rotate: 90 }}
+          whileTap={{ scale: 0.9 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           <Settings className="h-5 w-5" />
-        </button>
+        </motion.button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
