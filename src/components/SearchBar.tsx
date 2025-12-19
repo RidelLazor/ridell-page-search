@@ -232,7 +232,7 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
   };
 
   return (
-    <div className={`w-full ${compact ? "max-w-3xl" : "max-w-2xl"} mx-auto`}>
+    <div className={`w-full ${compact ? "max-w-3xl" : "max-w-3xl"} mx-auto`}>
       <div className="relative group">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
           {queryIsUrl ? (
