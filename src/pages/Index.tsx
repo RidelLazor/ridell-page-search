@@ -36,6 +36,7 @@ interface ImageResult {
 
 const Index = () => {
   const [viewState, setViewState] = useState<"home" | "results">("home");
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [imageResults, setImageResults] = useState<ImageResult[]>([]);
@@ -103,7 +104,16 @@ const Index = () => {
     setSearchQuery(query);
     setLoading(true);
     setError(null);
-    setViewState("results");
+    
+    // Start transition animation
+    if (viewState === "home") {
+      setIsTransitioning(true);
+      if (soundEnabled) playWhooshSound();
+      setTimeout(() => {
+        setViewState("results");
+        setIsTransitioning(false);
+      }, 600);
+    }
 
     // Save to search history for signed-in users
     saveSearchHistory(query);
@@ -324,84 +334,164 @@ const Index = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      {viewState === "home" && (
-        <>
-          {/* Top bar for home view */}
-          <motion.div 
-            className="absolute top-4 right-4 flex items-center gap-3 z-20"
-            initial={{ opacity: 0, y: -20 }}
-            animate={isExiting ? { scale: 1.5, opacity: 0 } : { scale: 1, opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
+    <div className="min-h-screen bg-background overflow-hidden">
+      <AnimatePresence mode="wait">
+        {viewState === "home" && !isTransitioning && (
+          <motion.div
+            key="home"
+            className="min-h-screen"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
           >
-            {renderControls()}
-          </motion.div>
-
-          {/* Keyboard shortcuts hint */}
-          <motion.div 
-            className="absolute bottom-4 left-4 text-xs text-muted-foreground hidden md:block"
-            initial={{ opacity: 0, y: 20 }}
-            animate={isExiting ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-          >
-            <span className="opacity-60">Press</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">/</kbd> <span className="opacity-60">to search,</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">Ctrl+B</kbd> <span className="opacity-60">for bookmarks</span>
-          </motion.div>
-
-          <motion.div 
-            className="flex flex-col items-center justify-center min-h-screen px-4"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={isExiting ? { scale: 1.1, opacity: 0 } : { scale: 1, opacity: 1 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-          >
+            {/* Top bar for home view */}
             <motion.div 
-              className="mb-8"
+              className="absolute top-4 right-4 flex items-center gap-3 z-20"
+              initial={{ opacity: 0, y: -20 }}
+              animate={isExiting ? { scale: 1.5, opacity: 0 } : { scale: 1, opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              {renderControls()}
+            </motion.div>
+
+            {/* Keyboard shortcuts hint */}
+            <motion.div 
+              className="absolute bottom-4 left-4 text-xs text-muted-foreground hidden md:block"
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.4 }}
+              animate={isExiting ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <span className="opacity-60">Press</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">/</kbd> <span className="opacity-60">to search,</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">Ctrl+B</kbd> <span className="opacity-60">for bookmarks</span>
+            </motion.div>
+
+            <motion.div 
+              className="flex flex-col items-center justify-center min-h-screen px-4"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={isExiting ? { scale: 1.1, opacity: 0 } : { scale: 1, opacity: 1 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              <motion.div 
+                className="mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.4 }}
+              >
+                <RidelLogo size="large" />
+              </motion.div>
+              <motion.p 
+                className="text-lg text-muted-foreground mb-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+              >
+                Search the web
+              </motion.p>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+              >
+                <SearchBar
+                  onSearch={handleSearch}
+                  onLucky={handleLucky}
+                  onNavigate={handleNavigate}
+                  inputRef={searchInputRef}
+                />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+              >
+                <QuickShortcuts onNavigate={handleNavigate} />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5, duration: 0.4 }}
+              >
+                <TrendingSearches onSearch={handleSearch} />
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Transition animation overlay */}
+        {isTransitioning && (
+          <motion.div
+            key="transition"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center px-4"
+          >
+            {/* Logo animating to corner */}
+            <motion.div
+              className="absolute"
+              initial={{ 
+                top: "50%", 
+                left: "50%", 
+                x: "-50%", 
+                y: "-50%",
+                scale: 1 
+              }}
+              animate={{ 
+                top: "1.5rem", 
+                left: "5rem", 
+                x: "0%", 
+                y: "0%",
+                scale: 0.35
+              }}
+              transition={{ 
+                duration: 0.5, 
+                ease: [0.32, 0.72, 0, 1]
+              }}
             >
               <RidelLogo size="large" />
             </motion.div>
-            <motion.p 
-              className="text-lg text-muted-foreground mb-8"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.4 }}
-            >
-              Search the web
-            </motion.p>
+
+            {/* Search bar animating to top */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
+              className="w-full max-w-2xl"
+              initial={{ 
+                y: 0,
+                scale: 1
+              }}
+              animate={{ 
+                y: "-40vh",
+                scale: 0.9
+              }}
+              transition={{ 
+                duration: 0.5, 
+                ease: [0.32, 0.72, 0, 1]
+              }}
             >
               <SearchBar
                 onSearch={handleSearch}
                 onLucky={handleLucky}
                 onNavigate={handleNavigate}
+                initialQuery={searchQuery}
+                compact
                 inputRef={searchInputRef}
               />
             </motion.div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.4 }}
-            >
-              <QuickShortcuts onNavigate={handleNavigate} />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.4 }}
-            >
-              <TrendingSearches onSearch={handleSearch} />
-            </motion.div>
-          </motion.div>
-        </>
-      )}
 
-      {viewState === "results" && (
-        <div className="flex min-h-screen">
-          {/* Sidebar toggle button (always visible) */}
+            {/* Fade out other elements */}
+            <motion.div
+              className="absolute inset-0 bg-background"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              style={{ zIndex: -1 }}
+            />
+          </motion.div>
+        )}
+
+        {viewState === "results" && !isTransitioning && (
+          <motion.div 
+            key="results"
+            className="flex min-h-screen"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Sidebar toggle button (always visible) */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className="hidden md:flex fixed left-0 top-1/2 -translate-y-1/2 z-40 items-center justify-center w-6 h-12 bg-secondary hover:bg-secondary/80 rounded-r-lg border border-l-0 border-border transition-all duration-300"
@@ -480,8 +570,9 @@ const Index = () => {
               </div>
             )}
           </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <BookmarksPanel
         isOpen={showBookmarks}
