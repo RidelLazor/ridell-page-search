@@ -18,7 +18,7 @@ const TRENDING_SEARCHES = [
 
 const TrendingSearches = ({ onSearch }: TrendingSearchesProps) => {
   return (
-    <div className="mt-8 w-full max-w-xl">
+    <div className="mt-8 w-full max-w-4xl">
       <div className="flex items-center gap-2 mb-4">
         <TrendingUp className="h-4 w-4 text-primary" />
         <span className="text-sm font-medium text-muted-foreground">Trending searches</span>
