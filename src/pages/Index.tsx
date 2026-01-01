@@ -14,6 +14,7 @@ import SearchTabs, { SearchTab } from "@/components/SearchTabs";
 import DateFilter, { DateRange } from "@/components/DateFilter";
 import ImageResults from "@/components/ImageResults";
 import GoogleAppsGrid from "@/components/GoogleAppsGrid";
+import { CustomizeButton, CustomizePanel } from "@/components/CustomizePanel";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useTransitionSound } from "@/hooks/useTransitionSound";
@@ -49,6 +50,7 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [showCustomize, setShowCustomize] = useState(false);
   const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
   const [showRidelTransition, setShowRidelTransition] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -711,6 +713,9 @@ const Index = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <CustomizeButton onClick={() => setShowCustomize(true)} />
+      <CustomizePanel isOpen={showCustomize} onClose={() => setShowCustomize(false)} />
     </div>
   );
 };

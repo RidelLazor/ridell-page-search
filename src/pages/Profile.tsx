@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import RidelLogo from "@/components/RidelLogo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useToast } from "@/hooks/use-toast";
+import { CustomizeButton, CustomizePanel } from "@/components/CustomizePanel";
 
 interface SavedSearch {
   id: string;
@@ -27,6 +29,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [bookmarks] = useLocalStorage<BookmarkItem[]>("ridel-bookmarks", []);
+  const [showCustomize, setShowCustomize] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -101,7 +104,13 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <motion.div 
+      className="min-h-screen bg-background"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       {/* Header */}
       <header className="border-b border-border">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -215,7 +224,10 @@ const Profile = () => {
           </section>
         </div>
       </main>
-    </div>
+
+      <CustomizeButton onClick={() => setShowCustomize(true)} />
+      <CustomizePanel isOpen={showCustomize} onClose={() => setShowCustomize(false)} />
+    </motion.div>
   );
 };
 
