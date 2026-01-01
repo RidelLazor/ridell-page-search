@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Palette, Sun, Moon, Monitor, Image, Sparkles, X, Check } from "lucide-react";
+import { Palette, Sun, Moon, Monitor, Image, Sparkles, X, Check, Type, Link2 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 const accentColors = [
@@ -14,11 +14,24 @@ const accentColors = [
   { name: "Cyan", value: "189.5 94.5% 42.7%", light: "189.5 94.5% 42.7%", dark: "186 94% 60%" },
 ];
 
+const fontOptions = [
+  { name: "Inter", value: "inter", preview: "Modern & Clean" },
+  { name: "Space Grotesk", value: "space", preview: "Geometric" },
+  { name: "Poppins", value: "poppins", preview: "Friendly" },
+  { name: "JetBrains Mono", value: "mono", preview: "Technical" },
+  { name: "Outfit", value: "outfit", preview: "Contemporary" },
+  { name: "Sora", value: "sora", preview: "Elegant" },
+];
+
 const backgroundOptions = [
-  { name: "Default", value: "default", preview: "bg-background" },
-  { name: "Gradient", value: "gradient", preview: "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950" },
-  { name: "Mesh", value: "mesh", preview: "bg-gradient-to-br from-rose-100 via-violet-100 to-teal-100 dark:from-rose-950 dark:via-violet-950 dark:to-teal-950" },
-  { name: "Dots", value: "dots", preview: "bg-background" },
+  { name: "Default", value: "default", preview: "bg-background", animated: false },
+  { name: "Gradient", value: "gradient", preview: "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950", animated: false },
+  { name: "Mesh", value: "mesh", preview: "bg-gradient-to-br from-rose-100 via-violet-100 to-teal-100 dark:from-rose-950 dark:via-violet-950 dark:to-teal-950", animated: false },
+  { name: "Dots", value: "dots", preview: "bg-background", animated: false },
+  { name: "Aurora", value: "aurora", preview: "bg-gradient-to-br from-purple-100 via-blue-100 to-green-100 dark:from-purple-950 dark:via-blue-950 dark:to-green-950", animated: true },
+  { name: "Sunset", value: "sunset", preview: "bg-gradient-to-br from-orange-100 via-pink-100 to-purple-100 dark:from-orange-950 dark:via-pink-950 dark:to-purple-950", animated: true },
+  { name: "Ocean", value: "ocean", preview: "bg-gradient-to-br from-cyan-100 via-blue-100 to-teal-100 dark:from-cyan-950 dark:via-blue-950 dark:to-teal-950", animated: true },
+  { name: "Custom Image", value: "custom-image", preview: "bg-muted", animated: false },
 ];
 
 interface CustomizePanelProps {
@@ -30,6 +43,9 @@ export const CustomizePanel = ({ isOpen, onClose }: CustomizePanelProps) => {
   const { theme, setTheme } = useTheme();
   const [accentColor, setAccentColor] = useLocalStorage("ridel-accent-color", accentColors[0]);
   const [background, setBackground] = useLocalStorage("ridel-background", "default");
+  const [fontFamily, setFontFamily] = useLocalStorage("ridel-font", "inter");
+  const [customImageUrl, setCustomImageUrl] = useLocalStorage("ridel-custom-bg-url", "");
+  const [imageUrlInput, setImageUrlInput] = useState(customImageUrl);
 
   // Apply accent color to CSS variables
   useEffect(() => {
@@ -40,19 +56,43 @@ export const CustomizePanel = ({ isOpen, onClose }: CustomizePanelProps) => {
     root.style.setProperty("--ring", isDark ? accentColor.dark : accentColor.light);
   }, [accentColor, theme]);
 
+  // Apply font family
+  useEffect(() => {
+    const body = document.body;
+    // Remove all font classes
+    fontOptions.forEach(font => {
+      body.classList.remove(`font-${font.value}`);
+    });
+    // Add selected font class
+    body.classList.add(`font-${fontFamily}`);
+  }, [fontFamily]);
+
   // Apply background style
   useEffect(() => {
     const body = document.body;
-    body.classList.remove("bg-gradient", "bg-mesh", "bg-dots");
+    // Remove all background classes
+    backgroundOptions.forEach(bg => {
+      body.classList.remove(`bg-${bg.value}`);
+    });
     
-    if (background === "gradient") {
-      body.classList.add("bg-gradient");
-    } else if (background === "mesh") {
-      body.classList.add("bg-mesh");
-    } else if (background === "dots") {
-      body.classList.add("bg-dots");
+    if (background !== "default") {
+      body.classList.add(`bg-${background}`);
     }
-  }, [background]);
+
+    // Apply custom image if selected
+    if (background === "custom-image" && customImageUrl) {
+      body.style.backgroundImage = `url(${customImageUrl})`;
+    } else {
+      body.style.backgroundImage = "";
+    }
+  }, [background, customImageUrl]);
+
+  const handleSetCustomImage = () => {
+    if (imageUrlInput.trim()) {
+      setCustomImageUrl(imageUrlInput.trim());
+      setBackground("custom-image");
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -91,7 +131,7 @@ export const CustomizePanel = ({ isOpen, onClose }: CustomizePanelProps) => {
               </motion.button>
             </div>
 
-            <div className="p-4 space-y-6 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 space-y-6 max-h-[70vh] overflow-y-auto">
               {/* Theme Section */}
               <div>
                 <h4 className="text-sm font-medium mb-3 text-muted-foreground">Theme</h4>
@@ -114,6 +154,37 @@ export const CustomizePanel = ({ isOpen, onClose }: CustomizePanelProps) => {
                     >
                       <Icon className="h-5 w-5" />
                       <span className="text-xs font-medium">{label}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Font Section */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Type className="h-4 w-4 text-muted-foreground" />
+                  <h4 className="text-sm font-medium text-muted-foreground">Font</h4>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {fontOptions.map((font) => (
+                    <motion.button
+                      key={font.value}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setFontFamily(font.value)}
+                      className={`relative p-3 rounded-xl border text-left transition-all ${
+                        fontFamily === font.value
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50 hover:bg-secondary"
+                      }`}
+                    >
+                      <p className={`text-sm font-medium font-${font.value}`}>{font.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{font.preview}</p>
+                      {fontFamily === font.value && (
+                        <div className="absolute top-2 right-2">
+                          <Check className="h-3 w-3 text-primary" />
+                        </div>
+                      )}
                     </motion.button>
                   ))}
                 </div>
@@ -151,7 +222,10 @@ export const CustomizePanel = ({ isOpen, onClose }: CustomizePanelProps) => {
 
               {/* Background Section */}
               <div>
-                <h4 className="text-sm font-medium mb-3 text-muted-foreground">Background</h4>
+                <div className="flex items-center gap-2 mb-3">
+                  <Image className="h-4 w-4 text-muted-foreground" />
+                  <h4 className="text-sm font-medium text-muted-foreground">Background</h4>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {backgroundOptions.map((bg) => (
                     <motion.button
@@ -175,10 +249,19 @@ export const CustomizePanel = ({ isOpen, onClose }: CustomizePanelProps) => {
                             }}
                           />
                         )}
+                        {bg.value === "custom-image" && customImageUrl && (
+                          <div
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: `url(${customImageUrl})` }}
+                          />
+                        )}
                       </div>
                       <div className="absolute inset-0 flex items-end p-2">
-                        <span className="text-xs font-medium bg-background/80 backdrop-blur-sm px-2 py-0.5 rounded">
+                        <span className="text-xs font-medium bg-background/80 backdrop-blur-sm px-2 py-0.5 rounded flex items-center gap-1">
                           {bg.name}
+                          {bg.animated && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                          )}
                         </span>
                       </div>
                       {background === bg.value && (
@@ -189,6 +272,40 @@ export const CustomizePanel = ({ isOpen, onClose }: CustomizePanelProps) => {
                     </motion.button>
                   ))}
                 </div>
+
+                {/* Custom Image URL Input */}
+                {background === "custom-image" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3 space-y-2"
+                  >
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="url"
+                          placeholder="Paste image URL..."
+                          value={imageUrlInput}
+                          onChange={(e) => setImageUrlInput(e.target.value)}
+                          className="pl-9 text-sm"
+                        />
+                      </div>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleSetCustomImage}
+                        className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"
+                      >
+                        Apply
+                      </motion.button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Enter a direct link to an image (e.g., from Unsplash)
+                    </p>
+                  </motion.div>
+                )}
               </div>
             </div>
           </motion.div>
