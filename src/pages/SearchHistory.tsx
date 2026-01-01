@@ -7,6 +7,7 @@ import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import RidelLogo from "@/components/RidelLogo";
+import { CustomizeButton, CustomizePanel } from "@/components/CustomizePanel";
 
 interface SearchHistoryItem {
   id: string;
@@ -18,6 +19,7 @@ const SearchHistory = () => {
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [showCustomize, setShowCustomize] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -148,7 +150,13 @@ const SearchHistory = () => {
   }, {} as Record<string, SearchHistoryItem[]>);
 
   return (
-    <div className="min-h-screen bg-background">
+    <motion.div 
+      className="min-h-screen bg-background"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+    >
       <div className="max-w-3xl mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -248,7 +256,10 @@ const SearchHistory = () => {
           </>
         )}
       </div>
-    </div>
+
+      <CustomizeButton onClick={() => setShowCustomize(true)} />
+      <CustomizePanel isOpen={showCustomize} onClose={() => setShowCustomize(false)} />
+    </motion.div>
   );
 };
 
