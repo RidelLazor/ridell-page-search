@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.trending-searches]
 verify_jwt = false
+
+[functions.ai-autocomplete]
+verify_jwt = false
+
+[functions.video-search]
+verify_jwt = false
