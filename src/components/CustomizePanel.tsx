@@ -40,21 +40,28 @@ interface CustomizePanelProps {
 }
 
 export const CustomizePanel = ({ isOpen, onClose }: CustomizePanelProps) => {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [accentColor, setAccentColor] = useLocalStorage("ridel-accent-color", accentColors[0]);
   const [background, setBackground] = useLocalStorage("ridel-background", "default");
   const [fontFamily, setFontFamily] = useLocalStorage("ridel-font", "inter");
   const [customImageUrl, setCustomImageUrl] = useLocalStorage("ridel-custom-bg-url", "");
   const [imageUrlInput, setImageUrlInput] = useState(customImageUrl);
 
+  // Ensure component is mounted before accessing theme
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Apply accent color to CSS variables
   useEffect(() => {
+    if (!mounted) return;
     const root = document.documentElement;
-    const isDark = theme === "dark";
+    const isDark = resolvedTheme === "dark";
     
     root.style.setProperty("--primary", isDark ? accentColor.dark : accentColor.light);
     root.style.setProperty("--ring", isDark ? accentColor.dark : accentColor.light);
-  }, [accentColor, theme]);
+  }, [accentColor, resolvedTheme, mounted]);
 
   // Apply font family
   useEffect(() => {
@@ -147,7 +154,7 @@ export const CustomizePanel = ({ isOpen, onClose }: CustomizePanelProps) => {
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setTheme(value)}
                       className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${
-                        theme === value
+                        mounted && theme === value
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border hover:border-primary/50 hover:bg-secondary"
                       }`}

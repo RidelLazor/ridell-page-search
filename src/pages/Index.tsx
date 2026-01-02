@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
+import MixedSearchResults from "@/components/MixedSearchResults";
 import BookmarksPanel from "@/components/BookmarksPanel";
 import SettingsDialog from "@/components/SettingsDialog";
 import QuickShortcuts from "@/components/QuickShortcuts";
@@ -122,6 +123,7 @@ const Index = () => {
 
     try {
       if (tab === "images") {
+        // Only image search
         const { data, error: fnError } = await supabase.functions.invoke("image-search", {
           body: { query, safeSearch },
         });
@@ -135,7 +137,38 @@ const Index = () => {
           setError(data.error || "Image search failed");
           setImageResults([]);
         }
+      } else if (tab === "all") {
+        // Fetch both web and image results in parallel for mixed view
+        const [webResponse, imageResponse] = await Promise.all([
+          supabase.functions.invoke("search", {
+            body: { query, safeSearch, dateRange: date },
+          }),
+          supabase.functions.invoke("image-search", {
+            body: { query, safeSearch },
+          }),
+        ]);
+
+        if (webResponse.error) throw new Error(webResponse.error.message);
+
+        if (webResponse.data.success && webResponse.data.results) {
+          setResults(webResponse.data.results);
+          
+          if (goToFirst && webResponse.data.results.length > 0) {
+            window.location.href = webResponse.data.results[0].url;
+          }
+        } else {
+          setError(webResponse.data.error || "Search failed");
+          setResults([]);
+        }
+
+        // Set image results (non-blocking)
+        if (imageResponse.data?.success && imageResponse.data?.results) {
+          setImageResults(imageResponse.data.results);
+        } else {
+          setImageResults([]);
+        }
       } else {
+        // Other tabs - just web search
         const { data, error: fnError } = await supabase.functions.invoke("search", {
           body: { query, safeSearch, dateRange: date },
         });
@@ -571,8 +604,9 @@ const Index = () => {
             {activeTab === "all" && (
               <>
                 <AISummary query={searchQuery} results={results} />
-                <SearchResults
-                  results={results}
+                <MixedSearchResults
+                  webResults={results}
+                  imageResults={imageResults}
                   loading={loading}
                   error={error}
                   onResultClick={handleResultClick}
