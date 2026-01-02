@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, KeyboardEvent, useMemo } from "react";
-import { Search, Clock, X, Mic, MicOff, Globe } from "lucide-react";
+import { Search, Clock, X, Mic, MicOff, Globe, Star, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useToast } from "@/hooks/use-toast";
+import { useFavorites } from "./FavoritesPanel";
+import { motion } from "framer-motion";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -12,6 +14,7 @@ interface SearchBarProps {
   initialQuery?: string;
   compact?: boolean;
   inputRef?: React.RefObject<HTMLInputElement>;
+  onAskAI?: () => void;
 }
 
 const MAX_HISTORY = 10;
@@ -19,18 +22,21 @@ const MAX_HISTORY = 10;
 // Check if Web Speech API is available
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact = false, inputRef: externalRef }: SearchBarProps) => {
+const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact = false, inputRef: externalRef, onAskAI }: SearchBarProps) => {
   const [query, setQuery] = useState(initialQuery);
   const internalRef = useRef<HTMLInputElement>(null);
   const inputRef = externalRef || internalRef;
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [searchHistory, setSearchHistory] = useLocalStorage<string[]>("ridel-search-history", []);
   const [isListening, setIsListening] = useState(false);
+  const [loadingAiSuggestions, setLoadingAiSuggestions] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const { toast } = useToast();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const isUrl = (text: string) => {
     const trimmed = text.trim();
@@ -105,19 +111,24 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
     }
   };
 
-  // Combined list: history first, then suggestions
+  // Combined list: favorites first, then history, then AI suggestions, then regular suggestions
   const dropdownItems = query.trim().length < 2
-    ? searchHistory.slice(0, 5).map((h) => ({ text: h, isHistory: true }))
+    ? searchHistory.slice(0, 5).map((h) => ({ text: h, type: "history" as const }))
     : [
         ...searchHistory
           .filter((h) => h.toLowerCase().includes(query.toLowerCase()))
           .slice(0, 3)
-          .map((h) => ({ text: h, isHistory: true })),
+          .map((h) => ({ text: h, type: "history" as const })),
+        ...aiSuggestions
+          .filter((s) => !searchHistory.some((h) => h.toLowerCase() === s.toLowerCase()))
+          .map((s) => ({ text: s, type: "ai" as const })),
         ...suggestions
           .filter((s) => !searchHistory.some((h) => h.toLowerCase() === s.toLowerCase()))
-          .map((s) => ({ text: s, isHistory: false })),
+          .filter((s) => !aiSuggestions.some((ai) => ai.toLowerCase() === s.toLowerCase()))
+          .map((s) => ({ text: s, type: "suggestion" as const })),
       ];
 
+  // Fetch regular autocomplete suggestions
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (query.trim().length < 2 || isUrl(query)) {
@@ -139,6 +150,34 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
     };
 
     const debounce = setTimeout(fetchSuggestions, 150);
+    return () => clearTimeout(debounce);
+  }, [query]);
+
+  // Fetch AI-powered suggestions
+  useEffect(() => {
+    const fetchAiSuggestions = async () => {
+      if (query.trim().length < 3 || isUrl(query)) {
+        setAiSuggestions([]);
+        return;
+      }
+
+      setLoadingAiSuggestions(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("ai-autocomplete", {
+          body: { query: query.trim() },
+        });
+
+        if (!error && data?.success && data.suggestions) {
+          setAiSuggestions(data.suggestions);
+        }
+      } catch (err) {
+        console.error("AI Autocomplete error:", err);
+      } finally {
+        setLoadingAiSuggestions(false);
+      }
+    };
+
+    const debounce = setTimeout(fetchAiSuggestions, 300);
     return () => clearTimeout(debounce);
   }, [query]);
 
@@ -231,6 +270,15 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
     handleSubmit(text);
   };
 
+  const handleToggleFavorite = () => {
+    const wasFavorite = isFavorite(query);
+    toggleFavorite(query);
+    toast({
+      title: wasFavorite ? "Removed from favorites" : "Added to favorites",
+      description: query,
+    });
+  };
+
   return (
     <div className={`w-full ${compact ? "max-w-3xl" : "max-w-6xl"} mx-auto`}>
       <div className="relative group">
@@ -253,27 +301,63 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
           onFocus={() => setShowDropdown(true)}
           onKeyDown={handleKeyDown}
           placeholder={isListening ? "Listening..." : "Search or enter URL (https://...)"}
-          className={`w-full py-3 pl-12 pr-12 text-base bg-background border border-border rounded-full shadow-sm hover:shadow-md focus:shadow-md focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all ${
+          className={`w-full py-3 pl-12 ${onAskAI ? 'pr-32' : 'pr-12'} text-base bg-background border border-border rounded-full shadow-sm hover:shadow-md focus:shadow-md focus:outline-none focus:ring-1 focus:ring-primary/20 transition-all ${
             isListening ? "ring-2 ring-red-500/50" : ""
           } ${queryIsUrl ? "border-blue-500/50" : ""}`}
         />
         
-        {/* Voice Search Button */}
-        <button
-          onClick={toggleVoiceSearch}
-          className={`absolute inset-y-0 right-0 pr-4 flex items-center transition-colors ${
-            isListening ? "text-red-500" : "text-muted-foreground hover:text-foreground"
-          }`}
-          aria-label={isListening ? "Stop listening" : "Start voice search"}
-        >
-          {isListening ? (
-            <MicOff className="h-5 w-5 animate-pulse" />
-          ) : (
-            <Mic className="h-5 w-5" />
+        {/* Right side buttons container */}
+        <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-2">
+          {/* Ask AI Button */}
+          {onAskAI && query.trim().length > 0 && (
+            <motion.button
+              onClick={onAskAI}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all bg-gradient-to-r from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 text-primary border border-primary/20"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title="Ask Ridel AI"
+            >
+              <Sparkles className="h-3 w-3" />
+              <span className="hidden sm:inline">Ask AI</span>
+            </motion.button>
           )}
-        </button>
+          
+          {/* Favorite Star Button */}
+          {query.trim().length > 0 && !queryIsUrl && (
+            <motion.button
+              onClick={handleToggleFavorite}
+              className={`p-1.5 rounded-full transition-colors ${
+                isFavorite(query) 
+                  ? "text-yellow-500" 
+                  : "text-muted-foreground hover:text-yellow-500"
+              }`}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              title={isFavorite(query) ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Star className={`h-4 w-4 ${isFavorite(query) ? "fill-current" : ""}`} />
+            </motion.button>
+          )}
+          
+          {/* Voice Search Button */}
+          <button
+            onClick={toggleVoiceSearch}
+            className={`p-1.5 transition-colors ${
+              isListening ? "text-red-500" : "text-muted-foreground hover:text-foreground"
+            }`}
+            aria-label={isListening ? "Stop listening" : "Start voice search"}
+          >
+            {isListening ? (
+              <MicOff className="h-5 w-5 animate-pulse" />
+            ) : (
+              <Mic className="h-5 w-5" />
+            )}
+          </button>
+        </div>
 
-        {/* Dropdown with history and suggestions */}
+        {/* Dropdown with history, AI suggestions, and regular suggestions */}
         {showDropdown && dropdownItems.length > 0 && !isListening && (
           <div
             ref={dropdownRef}
@@ -290,6 +374,12 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
                 </button>
               </div>
             )}
+            {loadingAiSuggestions && query.trim().length >= 3 && (
+              <div className="flex items-center gap-2 px-4 py-2 border-b border-border">
+                <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+                <span className="text-xs text-muted-foreground">AI is thinking...</span>
+              </div>
+            )}
             {dropdownItems.map((item, index) => (
               <button
                 key={`${item.text}-${index}`}
@@ -300,13 +390,18 @@ const SearchBar = ({ onSearch, onLucky, onNavigate, initialQuery = "", compact =
                     : "hover:bg-accent/50"
                 }`}
               >
-                {item.isHistory ? (
+                {item.type === "history" ? (
                   <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                ) : item.type === "ai" ? (
+                  <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
                 ) : (
                   <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 )}
                 <span className="flex-1 truncate">{item.text}</span>
-                {item.isHistory && (
+                {item.type === "ai" && (
+                  <span className="text-[10px] text-primary/70 font-medium px-1.5 py-0.5 rounded bg-primary/10">AI</span>
+                )}
+                {item.type === "history" && (
                   <button
                     onClick={(e) => removeFromHistory(item.text, e)}
                     className="p-1 rounded-full hover:bg-destructive/20 opacity-0 group-hover/item:opacity-100 transition-opacity"

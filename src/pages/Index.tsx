@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Bookmark, ChevronLeft, ChevronRight, Loader2, History } from "lucide-react";
+import { Bookmark, ChevronLeft, ChevronRight, Loader2, History, Star } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import RidelLogo from "@/components/RidelLogo";
@@ -7,6 +7,7 @@ import SearchBar from "@/components/SearchBar";
 import SearchResults from "@/components/SearchResults";
 import MixedSearchResults from "@/components/MixedSearchResults";
 import BookmarksPanel from "@/components/BookmarksPanel";
+import FavoritesPanel from "@/components/FavoritesPanel";
 import SettingsDialog from "@/components/SettingsDialog";
 import QuickShortcuts from "@/components/QuickShortcuts";
 import AISummary from "@/components/AISummary";
@@ -45,6 +46,7 @@ const Index = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showFavorites, setShowFavorites] = useState(false);
   const [safeSearch] = useLocalStorage("ridel-safe-search", true);
   const [activeTab, setActiveTab] = useState<SearchTab>("all");
   const [dateRange, setDateRange] = useState<DateRange>("any");
@@ -84,6 +86,14 @@ const Index = () => {
 
   const toggleBookmarks = useCallback(() => {
     setShowBookmarks((prev) => !prev);
+  }, []);
+
+  const toggleFavorites = useCallback(() => {
+    setShowFavorites((prev) => !prev);
+  }, []);
+
+  const handleAskAI = useCallback(() => {
+    window.location.href = "https://ridelai.lovable.app/";
   }, []);
 
   useKeyboardShortcuts({
@@ -291,6 +301,17 @@ const Index = () => {
       >
         <Bookmark className="h-5 w-5" />
       </motion.button>
+      <motion.button
+        onClick={() => setShowFavorites(true)}
+        className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
+        aria-label="Pinned Searches"
+        title="Pinned Searches"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+      >
+        <Star className="h-5 w-5" />
+      </motion.button>
       {user && (
         <motion.button
           onClick={() => navigate("/history")}
@@ -454,6 +475,7 @@ const Index = () => {
                   onLucky={handleLucky}
                   onNavigate={handleNavigate}
                   inputRef={searchInputRef}
+                  onAskAI={handleAskAI}
                 />
               </motion.div>
               <motion.div
@@ -638,6 +660,12 @@ const Index = () => {
         isOpen={showBookmarks}
         onClose={() => setShowBookmarks(false)}
         onNavigate={handleNavigate}
+      />
+
+      <FavoritesPanel
+        isOpen={showFavorites}
+        onClose={() => setShowFavorites(false)}
+        onSearch={handleSearch}
       />
 
       {/* Sign-in transition overlay */}

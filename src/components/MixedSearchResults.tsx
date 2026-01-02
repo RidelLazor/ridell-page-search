@@ -1,4 +1,4 @@
-import { Loader2, Bookmark, BookmarkCheck, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { Loader2, Bookmark, BookmarkCheck, ExternalLink, Image as ImageIcon, Play, Video } from "lucide-react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
@@ -18,6 +18,15 @@ interface ImageResult {
   source: string;
 }
 
+interface VideoResult {
+  title: string;
+  url: string;
+  thumbnail: string;
+  duration: string;
+  source: string;
+  embedUrl: string | null;
+}
+
 interface BookmarkItem {
   id: string;
   title: string;
@@ -25,21 +34,23 @@ interface BookmarkItem {
 }
 
 interface MixedResult {
-  type: "web" | "image";
-  data: SearchResult | ImageResult;
+  type: "web" | "image" | "video";
+  data: SearchResult | ImageResult | VideoResult;
 }
 
 interface MixedSearchResultsProps {
   webResults: SearchResult[];
   imageResults: ImageResult[];
+  videoResults?: VideoResult[];
   loading: boolean;
   error: string | null;
   onResultClick: (url: string) => void;
 }
 
-const MixedSearchResults = ({ webResults, imageResults, loading, error, onResultClick }: MixedSearchResultsProps) => {
+const MixedSearchResults = ({ webResults, imageResults, videoResults = [], loading, error, onResultClick }: MixedSearchResultsProps) => {
   const [bookmarks, setBookmarks] = useLocalStorage<BookmarkItem[]>("ridel-bookmarks", []);
   const [selectedImage, setSelectedImage] = useState<ImageResult | null>(null);
+  const [playingVideo, setPlayingVideo] = useState<VideoResult | null>(null);
   const { toast } = useToast();
 
   const isBookmarked = (url: string) => {
