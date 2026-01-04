@@ -114,19 +114,19 @@ const Index = () => {
   };
 
   const performSearch = async (query: string, goToFirst = false, tab: SearchTab = activeTab, date: DateRange = dateRange) => {
+    // Navigate to search page with query params
+    if (soundEnabled) playWhooshSound();
+    setIsTransitioning(true);
+    
+    setTimeout(() => {
+      navigate(`/search?q=${encodeURIComponent(query)}&tab=${tab}`);
+    }, 600);
+  };
+
+  const performSearchDirect = async (query: string, goToFirst = false, tab: SearchTab = activeTab, date: DateRange = dateRange) => {
     setSearchQuery(query);
     setLoading(true);
     setError(null);
-    
-    // Start transition animation
-    if (viewState === "home") {
-      setIsTransitioning(true);
-      if (soundEnabled) playWhooshSound();
-      setTimeout(() => {
-        setViewState("results");
-        setIsTransitioning(false);
-      }, 600);
-    }
 
     // Save to search history for signed-in users
     saveSearchHistory(query);
