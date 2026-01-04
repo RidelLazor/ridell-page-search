@@ -33,6 +33,15 @@ interface ImageResult {
   source: string;
 }
 
+interface VideoResult {
+  title: string;
+  url: string;
+  thumbnail: string;
+  duration: string;
+  source: string;
+  embedUrl: string | null;
+}
+
 const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
@@ -41,6 +50,7 @@ const Search = () => {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [imageResults, setImageResults] = useState<ImageResult[]>([]);
+  const [videoResults, setVideoResults] = useState<VideoResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBookmarks, setShowBookmarks] = useState(false);
@@ -117,11 +127,14 @@ const Search = () => {
           setImageResults([]);
         }
       } else if (tab === "all") {
-        const [webResponse, imageResponse] = await Promise.all([
+        const [webResponse, imageResponse, videoResponse] = await Promise.all([
           supabase.functions.invoke("search", {
             body: { query, safeSearch, dateRange: date },
           }),
           supabase.functions.invoke("image-search", {
+            body: { query, safeSearch },
+          }),
+          supabase.functions.invoke("video-search", {
             body: { query, safeSearch },
           }),
         ]);
@@ -144,6 +157,27 @@ const Search = () => {
         } else {
           setImageResults([]);
         }
+
+        if (videoResponse.data?.success && videoResponse.data?.results) {
+          setVideoResults(videoResponse.data.results);
+        } else {
+          setVideoResults([]);
+        }
+      } else if (tab === "videos") {
+        const { data, error: fnError } = await supabase.functions.invoke("video-search", {
+          body: { query, safeSearch },
+        });
+
+        if (fnError) throw new Error(fnError.message);
+
+        if (data.success && data.results) {
+          setVideoResults(data.results);
+          setResults([]);
+          setImageResults([]);
+        } else {
+          setError(data.error || "Video search failed");
+          setVideoResults([]);
+        }
       } else {
         const { data, error: fnError } = await supabase.functions.invoke("search", {
           body: { query, safeSearch, dateRange: date },
@@ -154,6 +188,7 @@ const Search = () => {
         if (data.success && data.results) {
           setResults(data.results);
           setImageResults([]);
+          setVideoResults([]);
           
           if (goToFirst && data.results.length > 0) {
             window.location.href = data.results[0].url;
@@ -168,6 +203,7 @@ const Search = () => {
       setError("Failed to perform search. Please try again.");
       setResults([]);
       setImageResults([]);
+      setVideoResults([]);
     } finally {
       setLoading(false);
     }
@@ -335,6 +371,7 @@ const Search = () => {
               <MixedSearchResults
                 webResults={results}
                 imageResults={imageResults}
+                videoResults={videoResults}
                 loading={loading}
                 error={error}
                 onResultClick={handleResultClick}
@@ -350,11 +387,59 @@ const Search = () => {
             />
           )}
           
-          {(activeTab === "news" || activeTab === "videos") && (
+          {activeTab === "videos" && (
+            <div className="py-4">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                  <span className="ml-3 text-muted-foreground">Searching videos...</span>
+                </div>
+              ) : error ? (
+                <p className="text-destructive text-center py-8">{error}</p>
+              ) : videoResults.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No video results found.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {videoResults.map((video, index) => (
+                    <div
+                      key={index}
+                      className="group cursor-pointer rounded-lg overflow-hidden bg-card border border-border hover:border-primary/50 transition-colors"
+                      onClick={() => window.open(video.url, '_blank')}
+                    >
+                      <div className="aspect-video relative">
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                          <div className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
+                            <svg className="h-7 w-7 text-white ml-1" fill="white" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </div>
+                        </div>
+                        {video.duration && (
+                          <span className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded">
+                            {video.duration}
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <p className="font-medium line-clamp-2">{video.title}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{video.source}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {activeTab === "news" && (
             <div className="py-12 text-center">
-              <p className="text-muted-foreground">
-                {activeTab === "news" ? "News" : "Video"} search coming soon!
-              </p>
+              <p className="text-muted-foreground">News search coming soon!</p>
             </div>
           )}
         </div>
