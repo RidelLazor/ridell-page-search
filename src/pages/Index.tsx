@@ -347,7 +347,7 @@ const Index = () => {
       ) : iconsOnly ? (
         <motion.button
           onClick={handleAuthNavigate}
-          className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white hover:bg-gray-50 border border-gray-300 transition-colors"
+          className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-card hover:bg-secondary border border-border transition-colors"
           title="Sign in with Google"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -363,7 +363,7 @@ const Index = () => {
       ) : (
         <motion.button
           onClick={handleAuthNavigate}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 font-medium text-sm shadow-sm hover:shadow transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card hover:bg-secondary text-foreground border border-border font-medium text-sm shadow-sm hover:shadow transition-colors"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           transition={{ type: "spring", stiffness: 400, damping: 17 }}
@@ -414,7 +414,7 @@ const Index = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
+    <div className="min-h-screen bg-transparent overflow-hidden">
       <AnimatePresence mode="wait">
         {viewState === "home" && !isTransitioning && (
           <motion.div
@@ -678,7 +678,7 @@ const Index = () => {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="bg-white rounded-full flex items-center justify-center"
+              className="bg-card rounded-full flex items-center justify-center"
               initial={{ 
                 width: 40, 
                 height: 40,

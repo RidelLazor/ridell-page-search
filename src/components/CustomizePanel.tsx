@@ -25,13 +25,13 @@ const fontOptions = [
 
 const backgroundOptions = [
   { name: "Default", value: "default", preview: "bg-background", animated: false },
-  { name: "Gradient", value: "gradient", preview: "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950", animated: false },
-  { name: "Mesh", value: "mesh", preview: "bg-gradient-to-br from-rose-100 via-violet-100 to-teal-100 dark:from-rose-950 dark:via-violet-950 dark:to-teal-950", animated: false },
-  { name: "Dots", value: "dots", preview: "bg-background", animated: false },
-  { name: "Aurora", value: "aurora", preview: "bg-gradient-to-br from-purple-100 via-blue-100 to-green-100 dark:from-purple-950 dark:via-blue-950 dark:to-green-950", animated: true },
-  { name: "Sunset", value: "sunset", preview: "bg-gradient-to-br from-orange-100 via-pink-100 to-purple-100 dark:from-orange-950 dark:via-pink-950 dark:to-purple-950", animated: true },
-  { name: "Ocean", value: "ocean", preview: "bg-gradient-to-br from-cyan-100 via-blue-100 to-teal-100 dark:from-cyan-950 dark:via-blue-950 dark:to-teal-950", animated: true },
-  { name: "Custom Image", value: "custom-image", preview: "bg-muted", animated: false },
+  { name: "Gradient", value: "gradient", preview: "bg-gradient", animated: false },
+  { name: "Mesh", value: "mesh", preview: "bg-mesh", animated: false },
+  { name: "Dots", value: "dots", preview: "bg-dots", animated: false },
+  { name: "Aurora", value: "aurora", preview: "bg-aurora", animated: true },
+  { name: "Sunset", value: "sunset", preview: "bg-sunset", animated: true },
+  { name: "Ocean", value: "ocean", preview: "bg-ocean", animated: true },
+  { name: "Custom Image", value: "custom-image", preview: "bg-custom-image", animated: false },
 ];
 
 interface CustomizePanelProps {
@@ -247,15 +247,6 @@ export const CustomizePanel = ({ isOpen, onClose }: CustomizePanelProps) => {
                       }`}
                     >
                       <div className={`absolute inset-0 ${bg.preview}`}>
-                        {bg.value === "dots" && (
-                          <div
-                            className="absolute inset-0 opacity-20"
-                            style={{
-                              backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)",
-                              backgroundSize: "12px 12px",
-                            }}
-                          />
-                        )}
                         {bg.value === "custom-image" && customImageUrl && (
                           <div
                             className="absolute inset-0 bg-cover bg-center"
