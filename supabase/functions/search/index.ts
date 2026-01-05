@@ -5,6 +5,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Decode common HTML entities
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#(\d+);/g, (_, num) => String.fromCharCode(parseInt(num, 10)))
+    .replace(/&#x([a-fA-F0-9]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -75,12 +90,12 @@ serve(async (req) => {
           url = decodeURIComponent(uddgMatch[1]);
         }
         
-        // Clean up title (remove HTML tags)
-        const title = linkMatch[2].replace(/<[^>]*>/g, '').trim();
+        // Clean up title (remove HTML tags and decode entities)
+        const title = decodeHtmlEntities(linkMatch[2].replace(/<[^>]*>/g, '').trim());
         
-        // Clean up description (remove HTML tags)
+        // Clean up description (remove HTML tags and decode entities)
         const description = snippetMatch 
-          ? snippetMatch[1].replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ').trim()
+          ? decodeHtmlEntities(snippetMatch[1].replace(/<[^>]*>/g, '').trim())
           : '';
         
         if (url && title && url.startsWith('http')) {
