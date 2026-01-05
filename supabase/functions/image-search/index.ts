@@ -5,6 +5,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Decode common HTML entities
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#(\d+);/g, (_, num) => String.fromCharCode(parseInt(num, 10)))
+    .replace(/&#x([a-fA-F0-9]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -60,7 +75,7 @@ serve(async (req) => {
             url = decodeURIComponent(uddgMatch[1]);
           }
           
-          const title = linkMatch[2].replace(/<[^>]*>/g, '').trim();
+          const title = decodeHtmlEntities(linkMatch[2].replace(/<[^>]*>/g, '').trim());
           
           if (url && title && url.startsWith('http')) {
             const domain = new URL(url).hostname;
@@ -104,7 +119,7 @@ serve(async (req) => {
     const imageData = await imageResponse.json();
     
     const results = (imageData.results || []).slice(0, 30).map((img: any) => ({
-      title: img.title || 'Image',
+      title: decodeHtmlEntities(img.title || 'Image'),
       url: img.url || img.image,
       thumbnail: img.thumbnail || img.image,
       source: img.source || new URL(img.url || img.image).hostname,
