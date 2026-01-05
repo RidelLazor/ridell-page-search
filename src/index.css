@@ -126,72 +126,72 @@ All colors MUST be HSL.
   body.font-outfit { font-family: 'Outfit', system-ui, sans-serif; }
   body.font-sora { font-family: 'Sora', system-ui, sans-serif; }
 
-  /* Custom backgrounds */
-  body.bg-gradient {
+  /* Custom backgrounds (usable on body or any container) */
+  .bg-gradient {
     background: linear-gradient(135deg, hsl(217 91% 97%) 0%, hsl(280 60% 97%) 50%, hsl(217 91% 97%) 100%);
   }
 
-  .dark body.bg-gradient,
-  body.dark.bg-gradient {
+  .dark .bg-gradient,
+  body.dark .bg-gradient {
     background: linear-gradient(135deg, hsl(222.2 84% 4.9%) 0%, hsl(280 40% 10%) 50%, hsl(222.2 84% 4.9%) 100%);
   }
 
-  body.bg-mesh {
+  .bg-mesh {
     background: linear-gradient(135deg, hsl(346.8 77.2% 97%) 0%, hsl(262.1 60% 97%) 33%, hsl(180 60% 97%) 66%, hsl(346.8 77.2% 97%) 100%);
   }
 
-  .dark body.bg-mesh,
-  body.dark.bg-mesh {
+  .dark .bg-mesh,
+  body.dark .bg-mesh {
     background: linear-gradient(135deg, hsl(346.8 40% 8%) 0%, hsl(262.1 40% 8%) 33%, hsl(180 40% 8%) 66%, hsl(346.8 40% 8%) 100%);
   }
 
-  body.bg-dots {
+  .bg-dots {
     background-color: hsl(var(--background));
     background-image: radial-gradient(circle, hsl(var(--muted-foreground) / 0.15) 1px, transparent 1px);
     background-size: 20px 20px;
   }
 
   /* Animated gradient backgrounds */
-  body.bg-aurora {
+  .bg-aurora {
     background: linear-gradient(-45deg, hsl(280 60% 95%), hsl(200 80% 95%), hsl(150 60% 95%), hsl(280 60% 95%));
     background-size: 400% 400%;
     animation: aurora-gradient 15s ease infinite;
   }
 
-  .dark body.bg-aurora,
-  body.dark.bg-aurora {
+  .dark .bg-aurora,
+  body.dark .bg-aurora {
     background: linear-gradient(-45deg, hsl(280 60% 10%), hsl(200 80% 10%), hsl(150 60% 10%), hsl(280 60% 10%));
     background-size: 400% 400%;
     animation: aurora-gradient 15s ease infinite;
   }
 
-  body.bg-sunset {
+  .bg-sunset {
     background: linear-gradient(-45deg, hsl(20 90% 95%), hsl(340 80% 95%), hsl(280 60% 95%), hsl(20 90% 95%));
     background-size: 400% 400%;
     animation: aurora-gradient 12s ease infinite;
   }
 
-  .dark body.bg-sunset,
-  body.dark.bg-sunset {
+  .dark .bg-sunset,
+  body.dark .bg-sunset {
     background: linear-gradient(-45deg, hsl(20 90% 10%), hsl(340 80% 10%), hsl(280 60% 10%), hsl(20 90% 10%));
     background-size: 400% 400%;
     animation: aurora-gradient 12s ease infinite;
   }
 
-  body.bg-ocean {
+  .bg-ocean {
     background: linear-gradient(-45deg, hsl(200 80% 95%), hsl(220 70% 95%), hsl(180 60% 95%), hsl(200 80% 95%));
     background-size: 400% 400%;
     animation: aurora-gradient 18s ease infinite;
   }
 
-  .dark body.bg-ocean,
-  body.dark.bg-ocean {
+  .dark .bg-ocean,
+  body.dark .bg-ocean {
     background: linear-gradient(-45deg, hsl(200 80% 8%), hsl(220 70% 8%), hsl(180 60% 8%), hsl(200 80% 8%));
     background-size: 400% 400%;
     animation: aurora-gradient 18s ease infinite;
   }
 
-  body.bg-custom-image {
+  .bg-custom-image {
     background-color: hsl(var(--background));
     background-size: cover;
     background-position: center;
