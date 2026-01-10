@@ -1,4 +1,4 @@
-const RidelLogo = ({ size = "large" }: { size?: "small" | "large" }) => {
+const RidelLogo = ({ size = "large" }: { size?: "small" | "medium" | "large" }) => {
   const letters = [
     { char: "R", color: "text-red-500" },
     { char: "i", color: "text-blue-500" },
@@ -8,7 +8,11 @@ const RidelLogo = ({ size = "large" }: { size?: "small" | "large" }) => {
     { char: "L", color: "text-red-500" },
   ];
 
-  const textSize = size === "large" ? "text-7xl md:text-8xl" : "text-2xl";
+  const textSize = size === "large" 
+    ? "text-7xl md:text-8xl" 
+    : size === "medium" 
+      ? "text-5xl" 
+      : "text-2xl";
   const fontWeight = "font-bold";
 
   return (
