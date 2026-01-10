@@ -161,7 +161,7 @@ const MixedSearchResults = ({ webResults, imageResults, videoResults = [], loadi
                 <Video className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium text-muted-foreground">Videos</span>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
                 {videos.map((video, vidIndex) => (
                   <ResultContextMenu
                     key={vidIndex}
@@ -230,7 +230,7 @@ const MixedSearchResults = ({ webResults, imageResults, videoResults = [], loadi
                 <ImageIcon className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium text-muted-foreground">Images</span>
               </div>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+              <div className="grid grid-cols-3 gap-1.5 md:grid-cols-6 md:gap-2">
                 {images.map((img, imgIndex) => (
                   <ResultContextMenu
                     key={imgIndex}
@@ -284,24 +284,24 @@ const MixedSearchResults = ({ webResults, imageResults, videoResults = [], loadi
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.03 }}
-              className="max-w-2xl group"
+              className="w-full max-w-2xl group"
             >
               <div className="flex items-start gap-3">
-                <button
-                  onClick={() => onResultClick(webResult.url)}
-                  className="text-left flex-1"
-                >
-                  <p className="text-sm text-muted-foreground truncate mb-1 flex items-center gap-1">
-                    <ExternalLink className="h-3 w-3" />
-                    {webResult.url}
-                  </p>
-                  <h3 className="text-xl text-blue-600 dark:text-blue-400 group-hover:underline font-normal mb-1">
-                    {webResult.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {webResult.description}
-                  </p>
-                </button>
+                  <button
+                    onClick={() => onResultClick(webResult.url)}
+                    className="text-left flex-1 min-w-0"
+                  >
+                    <p className="text-xs md:text-sm text-muted-foreground truncate mb-1 flex items-center gap-1">
+                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">{webResult.url}</span>
+                    </p>
+                    <h3 className="text-base md:text-xl text-blue-600 dark:text-blue-400 group-hover:underline font-normal mb-1 line-clamp-2">
+                      {webResult.title}
+                    </h3>
+                    <p className="text-xs md:text-sm text-muted-foreground line-clamp-2">
+                      {webResult.description}
+                    </p>
+                  </button>
                 <motion.button
                   onClick={(e) => toggleBookmark(webResult, e)}
                   className={`p-2 rounded-full transition-all ${

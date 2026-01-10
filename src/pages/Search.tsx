@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
+import MobileSearchBar from "@/components/MobileSearchBar";
 import MixedSearchResults from "@/components/MixedSearchResults";
 import BookmarksPanel from "@/components/BookmarksPanel";
 import FavoritesPanel from "@/components/FavoritesPanel";
@@ -17,6 +18,7 @@ import { CustomizeButton, CustomizePanel } from "@/components/CustomizePanel";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useTransitionSound } from "@/hooks/useTransitionSound";
 import { useSoundSettings } from "@/hooks/useSoundSettings";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -65,6 +67,7 @@ const Search = () => {
   const navigate = useNavigate();
   const { playWhooshSound } = useTransitionSound();
   const { soundEnabled } = useSoundSettings();
+  const isMobile = useIsMobile();
 
   // Check auth state
   useEffect(() => {
@@ -312,31 +315,47 @@ const Search = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <div className="flex min-h-screen">
-        {/* Sidebar toggle */}
-        <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="hidden md:flex fixed left-0 top-1/2 -translate-y-1/2 z-40 items-center justify-center w-6 h-12 bg-secondary hover:bg-secondary/80 rounded-r-lg border border-l-0 border-border transition-all duration-300"
-          style={{ left: sidebarCollapsed ? 0 : '3.5rem' }}
-          title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
+        {/* Sidebar toggle - desktop only */}
+        {!isMobile && (
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="hidden md:flex fixed left-0 top-1/2 -translate-y-1/2 z-40 items-center justify-center w-6 h-12 bg-secondary hover:bg-secondary/80 rounded-r-lg border border-l-0 border-border transition-all duration-300"
+            style={{ left: sidebarCollapsed ? 0 : '3.5rem' }}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
+        )}
 
-        {/* Sidebar */}
-        <aside className={`hidden md:flex flex-col gap-3 p-3 border-r border-border bg-background/50 transition-all duration-300 ${sidebarCollapsed ? 'w-0 p-0 overflow-hidden border-0' : 'w-14'}`}>
-          {renderControls(true, true)}
-        </aside>
+        {/* Sidebar - desktop only */}
+        {!isMobile && (
+          <aside className={`hidden md:flex flex-col gap-3 p-3 border-r border-border bg-background/50 transition-all duration-300 ${sidebarCollapsed ? 'w-0 p-0 overflow-hidden border-0' : 'w-14'}`}>
+            {renderControls(true, true)}
+          </aside>
+        )}
 
         {/* Main content */}
-        <div className="flex-1 max-w-4xl px-4 py-6">
-          <div className="flex items-center gap-6 mb-4">
-            <button onClick={handleGoHome}>
-              <RidelLogo size="small" />
-            </button>
-            <div className="flex-1">
-              <SearchBar
+        <div className={`flex-1 w-full ${isMobile ? 'px-3 py-3' : 'max-w-4xl px-4 py-6'} overflow-x-hidden`}>
+          {/* Mobile header */}
+          {isMobile ? (
+            <div className="flex flex-col gap-3 mb-3">
+              <div className="flex items-center justify-between">
+                <button onClick={handleGoHome} className="flex-shrink-0">
+                  <RidelLogo size="small" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <SettingsDialog />
+                  <button
+                    onClick={() => setShowBookmarks(true)}
+                    className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-secondary"
+                  >
+                    <Bookmark className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <MobileSearchBar
                 onSearch={handleSearch}
                 onLucky={handleLucky}
                 onNavigate={handleNavigate}
@@ -345,17 +364,24 @@ const Search = () => {
                 inputRef={searchInputRef}
               />
             </div>
-            {/* Mobile controls */}
-            <div className="flex md:hidden items-center gap-2">
-              <SettingsDialog />
-              <button
-                onClick={() => setShowBookmarks(true)}
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-secondary"
-              >
-                <Bookmark className="h-5 w-5" />
+          ) : (
+            <div className="flex items-center gap-6 mb-4">
+              <button onClick={handleGoHome}>
+                <RidelLogo size="small" />
               </button>
+              <div className="flex-1">
+                <SearchBar
+                  onSearch={handleSearch}
+                  onLucky={handleLucky}
+                  onNavigate={handleNavigate}
+                  initialQuery={searchQuery}
+                  compact
+                  inputRef={searchInputRef}
+                />
+              </div>
+              {/* Desktop controls are in sidebar */}
             </div>
-          </div>
+          )}
           
           <SearchTabs activeTab={activeTab} onTabChange={handleTabChange} />
           
