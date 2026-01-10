@@ -1,9 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Bookmark, ChevronLeft, ChevronRight, Loader2, History, Star } from "lucide-react";
+import { Bookmark, ChevronLeft, ChevronRight, Loader2, History, Star, Palette } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
+import MobileSearchBar from "@/components/MobileSearchBar";
+import MobileBottomNav from "@/components/MobileBottomNav";
+import MobileAppsSheet from "@/components/MobileAppsSheet";
 import SearchResults from "@/components/SearchResults";
 import MixedSearchResults from "@/components/MixedSearchResults";
 import BookmarksPanel from "@/components/BookmarksPanel";
@@ -21,6 +24,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useTransitionSound } from "@/hooks/useTransitionSound";
 import { useSoundSettings } from "@/hooks/useSoundSettings";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -56,6 +60,7 @@ const Index = () => {
   const [showCustomize, setShowCustomize] = useState(false);
   const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
   const [showRidelTransition, setShowRidelTransition] = useState(false);
+  const [showMobileApps, setShowMobileApps] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const signInButtonRef = useRef<HTMLButtonElement>(null);
   const [buttonPosition, setButtonPosition] = useState({ x: 0, y: 0 });
@@ -63,6 +68,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { playWhooshSound, playClickSound } = useTransitionSound();
   const { soundEnabled } = useSoundSettings();
+  const isMobile = useIsMobile();
 
   // Check auth state
   useEffect(() => {
@@ -419,46 +425,69 @@ const Index = () => {
         {viewState === "home" && !isTransitioning && (
           <motion.div
             key="home"
-            className="min-h-screen"
+            className={`min-h-screen ${isMobile ? 'pb-24' : ''}`}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            {/* Top bar for home view */}
-            <motion.div 
-              className="absolute top-4 right-4 flex items-center gap-3 z-20"
-              initial={{ opacity: 0, y: -20 }}
-              animate={isExiting ? { scale: 1.5, opacity: 0 } : { scale: 1, opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-            >
-              {renderControls()}
-            </motion.div>
+            {/* Desktop top bar - hidden on mobile */}
+            {!isMobile && (
+              <motion.div 
+                className="absolute top-4 right-4 flex items-center gap-3 z-20"
+                initial={{ opacity: 0, y: -20 }}
+                animate={isExiting ? { scale: 1.5, opacity: 0 } : { scale: 1, opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
+                {renderControls()}
+              </motion.div>
+            )}
 
-            {/* Keyboard shortcuts hint */}
-            <motion.div 
-              className="absolute bottom-4 left-4 text-xs text-muted-foreground hidden md:block"
-              initial={{ opacity: 0, y: 20 }}
-              animate={isExiting ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-            >
-              <span className="opacity-60">Press</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">/</kbd> <span className="opacity-60">to search,</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">Ctrl+B</kbd> <span className="opacity-60">for bookmarks</span>
-            </motion.div>
+            {/* Mobile top bar with customize and settings */}
+            {isMobile && (
+              <motion.div 
+                className="absolute top-4 right-4 flex items-center gap-2 z-20"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <motion.button
+                  onClick={() => setShowCustomize(true)}
+                  className="p-3 rounded-full bg-secondary/80 backdrop-blur-sm"
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <Palette className="h-5 w-5 text-muted-foreground" />
+                </motion.button>
+                <SettingsDialog onOpenSearchHistory={user ? () => navigate("/history") : undefined} />
+              </motion.div>
+            )}
+
+            {/* Keyboard shortcuts hint - desktop only */}
+            {!isMobile && (
+              <motion.div 
+                className="absolute bottom-4 left-4 text-xs text-muted-foreground hidden md:block"
+                initial={{ opacity: 0, y: 20 }}
+                animate={isExiting ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+              >
+                <span className="opacity-60">Press</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">/</kbd> <span className="opacity-60">to search,</span> <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground">Ctrl+B</kbd> <span className="opacity-60">for bookmarks</span>
+              </motion.div>
+            )}
 
             <motion.div 
-              className="flex flex-col items-center justify-center min-h-screen px-4"
+              className={`flex flex-col items-center justify-center min-h-screen ${isMobile ? 'px-4 pt-16' : 'px-4'}`}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={isExiting ? { scale: 1.1, opacity: 0 } : { scale: 1, opacity: 1 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
               <motion.div 
-                className="mb-8"
+                className={isMobile ? "mb-6" : "mb-8"}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, duration: 0.4 }}
               >
-                <RidelLogo size="large" />
+                <RidelLogo size={isMobile ? "medium" : "large"} />
               </motion.div>
               <motion.p 
-                className="text-lg text-muted-foreground mb-8"
+                className={`text-muted-foreground ${isMobile ? 'text-base mb-6' : 'text-lg mb-8'}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.4 }}
@@ -466,17 +495,28 @@ const Index = () => {
                 Search the web
               </motion.p>
               <motion.div
+                className="w-full"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.4 }}
               >
-                <SearchBar
-                  onSearch={handleSearch}
-                  onLucky={handleLucky}
-                  onNavigate={handleNavigate}
-                  inputRef={searchInputRef}
-                  onAskAI={handleAskAI}
-                />
+                {isMobile ? (
+                  <MobileSearchBar
+                    onSearch={handleSearch}
+                    onLucky={handleLucky}
+                    onNavigate={handleNavigate}
+                    inputRef={searchInputRef}
+                    onAskAI={handleAskAI}
+                  />
+                ) : (
+                  <SearchBar
+                    onSearch={handleSearch}
+                    onLucky={handleLucky}
+                    onNavigate={handleNavigate}
+                    inputRef={searchInputRef}
+                    onAskAI={handleAskAI}
+                  />
+                )}
               </motion.div>
               <motion.div
                 initial={{ opacity: 0 }}
@@ -776,8 +816,27 @@ const Index = () => {
         )}
       </AnimatePresence>
 
-      <CustomizeButton onClick={() => setShowCustomize(true)} />
+      {/* Desktop customize button - hidden on mobile */}
+      {!isMobile && <CustomizeButton onClick={() => setShowCustomize(true)} />}
       <CustomizePanel isOpen={showCustomize} onClose={() => setShowCustomize(false)} />
+
+      {/* Mobile bottom navigation */}
+      {isMobile && viewState === "home" && !isTransitioning && (
+        <MobileBottomNav
+          user={user}
+          onOpenBookmarks={() => setShowBookmarks(true)}
+          onOpenFavorites={() => setShowFavorites(true)}
+          onOpenSettings={() => {}}
+          onOpenApps={() => setShowMobileApps(true)}
+        />
+      )}
+
+      {/* Mobile apps sheet */}
+      <MobileAppsSheet
+        isOpen={showMobileApps}
+        onClose={() => setShowMobileApps(false)}
+        onNavigate={handleNavigate}
+      />
     </div>
   );
 };
