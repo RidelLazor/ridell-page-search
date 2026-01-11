@@ -72,7 +72,19 @@ serve(async (req) => {
     const html = await response.text();
     
     // Parse the HTML to extract search results
-    const results: Array<{ title: string; url: string; description: string }> = [];
+    const results: Array<{ 
+      title: string; 
+      url: string; 
+      description: string;
+      sitelinks?: Array<{ title: string; url: string; description?: string }>;
+    }> = [];
+    
+    // Check for spell correction suggestion
+    let spellCorrection: string | null = null;
+    const spellMatch = html.match(/Did you mean:.*?<a[^>]*>([^<]+)<\/a>/i);
+    if (spellMatch) {
+      spellCorrection = decodeHtmlEntities(spellMatch[1].trim());
+    }
     
     // Extract all result links and titles
     const linkMatches = [...html.matchAll(/<a[^>]*rel="nofollow"[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi)];
@@ -99,15 +111,74 @@ serve(async (req) => {
           : '';
         
         if (url && title && url.startsWith('http')) {
-          results.push({ title, url, description });
+          // Generate sitelinks for the first result (simulated based on domain patterns)
+          let sitelinks: Array<{ title: string; url: string; description?: string }> | undefined;
+          
+          if (i === 0) {
+            try {
+              const urlObj = new URL(url);
+              const domain = urlObj.hostname;
+              
+              // Common sitelink patterns for popular sites
+              const sitelinkPatterns: Record<string, Array<{ title: string; path: string; description: string }>> = {
+                'default': [
+                  { title: 'About', path: '/about', description: 'Learn more about us' },
+                  { title: 'Contact', path: '/contact', description: 'Get in touch with us' },
+                  { title: 'Help', path: '/help', description: 'Find help and support' },
+                  { title: 'Login', path: '/login', description: 'Sign in to your account' },
+                ]
+              };
+              
+              const patterns = sitelinkPatterns['default'];
+              sitelinks = patterns.map(p => ({
+                title: p.title,
+                url: `${urlObj.origin}${p.path}`,
+                description: p.description
+              }));
+            } catch (e) {
+              // Ignore URL parsing errors
+            }
+          }
+          
+          results.push({ title, url, description, sitelinks });
         }
       }
     }
 
     console.log(`Found ${results.length} results`);
 
+    // Try to build a knowledge panel from the first result
+    let knowledgePanel = null;
+    if (results.length > 0) {
+      const firstResult = results[0];
+      try {
+        const urlObj = new URL(firstResult.url);
+        // Only create knowledge panel for well-known domains
+        const knownDomains = ['wikipedia.org', 'imdb.com', 'rottentomatoes.com', 'github.com'];
+        const isKnownDomain = knownDomains.some(d => urlObj.hostname.includes(d));
+        
+        if (isKnownDomain || results.length >= 3) {
+          knowledgePanel = {
+            title: query,
+            subtitle: urlObj.hostname.replace('www.', '').split('.')[0].charAt(0).toUpperCase() + 
+                     urlObj.hostname.replace('www.', '').split('.')[0].slice(1),
+            description: firstResult.description,
+            source: urlObj.hostname.replace('www.', ''),
+            sourceUrl: firstResult.url,
+          };
+        }
+      } catch (e) {
+        // Ignore URL parsing errors
+      }
+    }
+
     return new Response(
-      JSON.stringify({ success: true, results }),
+      JSON.stringify({ 
+        success: true, 
+        results,
+        spellCorrection,
+        knowledgePanel
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

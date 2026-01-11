@@ -1,14 +1,21 @@
-import { Loader2, Bookmark, BookmarkCheck, ExternalLink, Image as ImageIcon, Play, Video } from "lucide-react";
+import { Loader2, Bookmark, BookmarkCheck, ExternalLink, Image as ImageIcon, Play, Video, ChevronRight, Clock } from "lucide-react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { ResultContextMenu } from "./ResultContextMenu";
 
+interface Sitelink {
+  title: string;
+  url: string;
+  description?: string;
+}
+
 interface SearchResult {
   title: string;
   url: string;
   description: string;
+  sitelinks?: Sitelink[];
 }
 
 interface ImageResult {
@@ -320,6 +327,34 @@ const MixedSearchResults = ({ webResults, imageResults, videoResults = [], loadi
                   )}
                 </motion.button>
               </div>
+              
+              {/* Inline Sitelinks for first result */}
+              {index === 0 && webResult.sitelinks && webResult.sitelinks.length > 0 && (
+                <div className="mt-3 ml-0 border-l-2 border-border pl-4 space-y-1">
+                  {webResult.sitelinks.slice(0, 4).map((link, sitelinkIndex) => (
+                    <button
+                      key={sitelinkIndex}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onResultClick(link.url);
+                      }}
+                      className="group/sitelink flex items-center justify-between w-full py-1.5 px-2 rounded hover:bg-accent/50 transition-colors text-left"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm text-blue-600 dark:text-blue-400 group-hover/sitelink:underline">
+                          {link.title}
+                        </span>
+                        {link.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-1">
+                            {link.description}
+                          </p>
+                        )}
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover/sitelink:opacity-100 transition-opacity flex-shrink-0 ml-2" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </motion.div>
           </ResultContextMenu>
         );

@@ -14,6 +14,9 @@ import SearchTabs, { SearchTab } from "@/components/SearchTabs";
 import DateFilter, { DateRange } from "@/components/DateFilter";
 import ImageResults from "@/components/ImageResults";
 import GoogleAppsGrid from "@/components/GoogleAppsGrid";
+import SpellCorrection from "@/components/SpellCorrection";
+import KnowledgePanel from "@/components/KnowledgePanel";
+import Sitelinks from "@/components/Sitelinks";
 import { CustomizeButton, CustomizePanel } from "@/components/CustomizePanel";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useTransitionSound } from "@/hooks/useTransitionSound";
@@ -22,10 +25,17 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
+interface Sitelink {
+  title: string;
+  url: string;
+  description?: string;
+}
+
 interface SearchResult {
   title: string;
   url: string;
   description: string;
+  sitelinks?: Sitelink[];
 }
 
 interface ImageResult {
@@ -42,6 +52,18 @@ interface VideoResult {
   duration: string;
   source: string;
   embedUrl: string | null;
+}
+
+interface KnowledgePanelData {
+  title: string;
+  subtitle?: string;
+  description?: string;
+  image?: string;
+  images?: string[];
+  source?: string;
+  sourceUrl?: string;
+  attributes?: { label: string; value: string }[];
+  appRatings?: { store: string; rating: string; url?: string }[];
 }
 
 const Search = () => {
@@ -63,6 +85,9 @@ const Search = () => {
   const [user, setUser] = useState<User | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
+  const [spellCorrection, setSpellCorrection] = useState<string | null>(null);
+  const [knowledgePanel, setKnowledgePanel] = useState<KnowledgePanelData | null>(null);
+  const [originalQuery, setOriginalQuery] = useState<string>("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { playWhooshSound } = useTransitionSound();
@@ -103,10 +128,15 @@ const Search = () => {
     }
   };
 
-  const performSearch = async (query: string, goToFirst = false, tab: SearchTab = activeTab, date: DateRange = dateRange) => {
+  const performSearch = async (query: string, goToFirst = false, tab: SearchTab = activeTab, date: DateRange = dateRange, ignoreSpellCheck = false) => {
     setSearchQuery(query);
+    setOriginalQuery(query);
     setLoading(true);
     setError(null);
+    if (!ignoreSpellCheck) {
+      setSpellCorrection(null);
+    }
+    setKnowledgePanel(null);
     
     // Update URL
     setSearchParams({ q: query, tab });
@@ -146,6 +176,16 @@ const Search = () => {
 
         if (webResponse.data.success && webResponse.data.results) {
           setResults(webResponse.data.results);
+          
+          // Handle spell correction
+          if (webResponse.data.spellCorrection && !ignoreSpellCheck) {
+            setSpellCorrection(webResponse.data.spellCorrection);
+          }
+          
+          // Handle knowledge panel
+          if (webResponse.data.knowledgePanel) {
+            setKnowledgePanel(webResponse.data.knowledgePanel);
+          }
           
           if (goToFirst && webResponse.data.results.length > 0) {
             window.location.href = webResponse.data.results[0].url;
@@ -213,6 +253,15 @@ const Search = () => {
   };
 
   const handleSearch = (query: string) => {
+    performSearch(query, false);
+  };
+
+  const handleSearchOriginal = (query: string) => {
+    performSearch(query, false, activeTab, dateRange, true);
+  };
+
+  const handleSearchCorrected = (query: string) => {
+    setSpellCorrection(null);
     performSearch(query, false);
   };
 
@@ -392,17 +441,49 @@ const Search = () => {
           )}
           
           {activeTab === "all" && (
-            <>
-              <AISummary query={searchQuery} results={results} />
-              <MixedSearchResults
-                webResults={results}
-                imageResults={imageResults}
-                videoResults={videoResults}
-                loading={loading}
-                error={error}
-                onResultClick={handleResultClick}
-              />
-            </>
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Main results column */}
+              <div className="flex-1 min-w-0">
+                {/* Spell Correction */}
+                {spellCorrection && (
+                  <SpellCorrection
+                    originalQuery={originalQuery}
+                    correctedQuery={spellCorrection}
+                    onSearchCorrected={handleSearchCorrected}
+                    onSearchOriginal={handleSearchOriginal}
+                  />
+                )}
+                
+                <AISummary query={searchQuery} results={results} />
+                
+                {/* First result with sitelinks */}
+                {results.length > 0 && results[0].sitelinks && results[0].sitelinks.length > 0 && !loading && (
+                  <div className="mb-4">
+                    <Sitelinks 
+                      sitelinks={results[0].sitelinks} 
+                      onNavigate={handleResultClick} 
+                    />
+                  </div>
+                )}
+                
+                <MixedSearchResults
+                  webResults={results}
+                  imageResults={imageResults}
+                  videoResults={videoResults}
+                  loading={loading}
+                  error={error}
+                  onResultClick={handleResultClick}
+                />
+              </div>
+              
+              {/* Knowledge Panel - desktop only */}
+              {!isMobile && knowledgePanel && !loading && (
+                <KnowledgePanel 
+                  data={knowledgePanel} 
+                  onNavigate={handleResultClick} 
+                />
+              )}
+            </div>
           )}
           
           {activeTab === "images" && (
