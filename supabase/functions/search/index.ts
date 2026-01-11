@@ -20,6 +20,80 @@ function decodeHtmlEntities(text: string): string {
     .replace(/&#x([a-fA-F0-9]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
 }
 
+// Check if URL is from DuckDuckGo
+function isDuckDuckGoUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname.includes('duckduckgo.com');
+  } catch {
+    return false;
+  }
+}
+
+// Generate AI-enhanced descriptions for results
+async function enhanceDescriptionsWithAI(
+  results: Array<{ title: string; url: string; description: string }>,
+  query: string
+): Promise<Array<{ title: string; url: string; description: string }>> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  
+  if (!LOVABLE_API_KEY || results.length === 0) {
+    return results;
+  }
+
+  try {
+    // Create a prompt for AI to enhance descriptions
+    const resultsContext = results.slice(0, 5).map((r, i) => 
+      `${i + 1}. Title: "${r.title}" | URL: ${r.url} | Original: "${r.description || 'No description'}"`
+    ).join('\n');
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-lite',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a search result description enhancer. Given search results for a query, provide clear, concise, and informative descriptions for each result. Each description should be 1-2 sentences explaining what the user will find at that URL. Be factual and helpful. Return ONLY a JSON array of strings (descriptions), one for each result, in the same order.`
+          },
+          {
+            role: 'user',
+            content: `Query: "${query}"\n\nResults:\n${resultsContext}\n\nProvide enhanced descriptions as a JSON array of strings.`
+          }
+        ],
+        max_tokens: 500,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('AI enhancement failed:', response.status);
+      return results;
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    // Parse the AI response - extract JSON array
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const descriptions: string[] = JSON.parse(jsonMatch[0]);
+      return results.map((r, i) => ({
+        ...r,
+        description: descriptions[i] || r.description
+      }));
+    }
+    
+    return results;
+  } catch (error) {
+    console.error('AI enhancement error:', error);
+    return results;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -38,7 +112,6 @@ serve(async (req) => {
     console.log('Searching for:', query, 'Safe search:', safeSearch, 'Date range:', dateRange);
 
     // Use DuckDuckGo HTML search with safe search parameter
-    // kp=-2 disables safe search, kp=1 enables moderate, kp=-1 enables strict
     const safeParam = safeSearch ? '1' : '-2';
     
     // Date filter: df=d (day), df=w (week), df=m (month), df=y (year)
@@ -62,7 +135,7 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      console.error('DuckDuckGo request failed:', response.status);
+      console.error('Search request failed:', response.status);
       return new Response(
         JSON.stringify({ success: false, error: 'Search request failed' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -72,7 +145,7 @@ serve(async (req) => {
     const html = await response.text();
     
     // Parse the HTML to extract search results
-    const results: Array<{ 
+    let results: Array<{ 
       title: string; 
       url: string; 
       description: string;
@@ -90,16 +163,21 @@ serve(async (req) => {
     const linkMatches = [...html.matchAll(/<a[^>]*rel="nofollow"[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi)];
     const snippetMatches = [...html.matchAll(/<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi)];
     
-    for (let i = 0; i < Math.min(linkMatches.length, 10); i++) {
+    for (let i = 0; i < Math.min(linkMatches.length, 15); i++) {
       const linkMatch = linkMatches[i];
       const snippetMatch = snippetMatches[i];
       
       if (linkMatch) {
-        // Clean up the URL - DuckDuckGo wraps URLs in a redirect
+        // Clean up the URL - extract actual URL from redirect
         let url = linkMatch[1];
         const uddgMatch = url.match(/uddg=([^&]*)/);
         if (uddgMatch) {
           url = decodeURIComponent(uddgMatch[1]);
+        }
+        
+        // Skip DuckDuckGo URLs
+        if (isDuckDuckGoUrl(url)) {
+          continue;
         }
         
         // Clean up title (remove HTML tags and decode entities)
@@ -111,53 +189,52 @@ serve(async (req) => {
           : '';
         
         if (url && title && url.startsWith('http')) {
-          // Generate sitelinks for the first result (simulated based on domain patterns)
-          let sitelinks: Array<{ title: string; url: string; description?: string }> | undefined;
-          
-          if (i === 0) {
-            try {
-              const urlObj = new URL(url);
-              const domain = urlObj.hostname;
-              
-              // Common sitelink patterns for popular sites
-              const sitelinkPatterns: Record<string, Array<{ title: string; path: string; description: string }>> = {
-                'default': [
-                  { title: 'About', path: '/about', description: 'Learn more about us' },
-                  { title: 'Contact', path: '/contact', description: 'Get in touch with us' },
-                  { title: 'Help', path: '/help', description: 'Find help and support' },
-                  { title: 'Login', path: '/login', description: 'Sign in to your account' },
-                ]
-              };
-              
-              const patterns = sitelinkPatterns['default'];
-              sitelinks = patterns.map(p => ({
-                title: p.title,
-                url: `${urlObj.origin}${p.path}`,
-                description: p.description
-              }));
-            } catch (e) {
-              // Ignore URL parsing errors
-            }
-          }
-          
-          results.push({ title, url, description, sitelinks });
+          results.push({ title, url, description });
         }
       }
     }
 
-    console.log(`Found ${results.length} results`);
+    // Limit to 10 results after filtering
+    results = results.slice(0, 10);
+
+    console.log(`Found ${results.length} results after filtering`);
+
+    // Enhance descriptions with AI
+    const enhancedResults = await enhanceDescriptionsWithAI(
+      results.map(r => ({ title: r.title, url: r.url, description: r.description })),
+      query
+    );
+
+    // Add sitelinks to first result
+    const finalResults = enhancedResults.map((r, i) => {
+      if (i === 0) {
+        try {
+          const urlObj = new URL(r.url);
+          const sitelinks = [
+            { title: 'About', url: `${urlObj.origin}/about`, description: 'Learn more about us' },
+            { title: 'Contact', url: `${urlObj.origin}/contact`, description: 'Get in touch with us' },
+            { title: 'Help', url: `${urlObj.origin}/help`, description: 'Find help and support' },
+            { title: 'Login', url: `${urlObj.origin}/login`, description: 'Sign in to your account' },
+          ];
+          return { ...r, sitelinks };
+        } catch {
+          return r;
+        }
+      }
+      return r;
+    });
 
     // Try to build a knowledge panel from the first result
     let knowledgePanel = null;
-    if (results.length > 0) {
-      const firstResult = results[0];
+    if (finalResults.length > 0) {
+      const firstResult = finalResults[0];
       try {
         const urlObj = new URL(firstResult.url);
         // Only create knowledge panel for well-known domains
         const knownDomains = ['wikipedia.org', 'imdb.com', 'rottentomatoes.com', 'github.com'];
         const isKnownDomain = knownDomains.some(d => urlObj.hostname.includes(d));
         
-        if (isKnownDomain || results.length >= 3) {
+        if (isKnownDomain || finalResults.length >= 3) {
           knowledgePanel = {
             title: query,
             subtitle: urlObj.hostname.replace('www.', '').split('.')[0].charAt(0).toUpperCase() + 
@@ -175,7 +252,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        results,
+        results: finalResults,
         spellCorrection,
         knowledgePanel
       }),
