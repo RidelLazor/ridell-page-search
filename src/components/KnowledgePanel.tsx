@@ -59,17 +59,22 @@ const KnowledgePanel = ({ data, onNavigate }: KnowledgePanelProps) => {
         </button>
       </div>
 
-      {/* Image Carousel */}
+      {/* Company Logo */}
       {allImages.length > 0 && (
         <div className="space-y-2">
-          <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
+          <div className="relative flex items-center justify-center p-6 rounded-lg bg-muted/50">
             <motion.img
               key={selectedImageIndex}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2 }}
               src={allImages[selectedImageIndex]}
-              alt={data.title}
-              className="w-full h-full object-cover"
+              alt={`${data.title} logo`}
+              className="max-w-[180px] max-h-[120px] w-auto h-auto object-contain"
+              onError={(e) => {
+                // Hide the image container if logo fails to load
+                (e.target as HTMLImageElement).parentElement!.style.display = 'none';
+              }}
             />
           </div>
           {allImages.length > 1 && (
