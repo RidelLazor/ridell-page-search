@@ -1,12 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Bookmark, ChevronLeft, ChevronRight, Loader2, History, Star, ArrowLeft } from "lucide-react";
+import { Bookmark, ChevronLeft, ChevronRight, Loader2, History, Star } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
 import MobileSearchBar from "@/components/MobileSearchBar";
-import MobileBottomNav from "@/components/MobileBottomNav";
-import MobileAppsSheet from "@/components/MobileAppsSheet";
 import MixedSearchResults from "@/components/MixedSearchResults";
 import BookmarksPanel from "@/components/BookmarksPanel";
 import FavoritesPanel from "@/components/FavoritesPanel";
@@ -90,7 +88,6 @@ const Search = () => {
   const [spellCorrection, setSpellCorrection] = useState<string | null>(null);
   const [knowledgePanel, setKnowledgePanel] = useState<KnowledgePanelData | null>(null);
   const [originalQuery, setOriginalQuery] = useState<string>("");
-  const [showMobileApps, setShowMobileApps] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { playWhooshSound } = useTransitionSound();
@@ -367,7 +364,7 @@ const Search = () => {
   );
 
   return (
-    <div className={`min-h-screen bg-background overflow-x-hidden ${isMobile ? 'pb-20' : ''}`}>
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <div className="flex min-h-screen">
         {/* Sidebar toggle - desktop only */}
         {!isMobile && (
@@ -389,43 +386,33 @@ const Search = () => {
         )}
 
         {/* Main content */}
-        <div className={`flex-1 w-full ${isMobile ? 'px-0' : 'max-w-4xl px-4 py-6'} overflow-x-hidden`}>
-          {/* Mobile header - App-like sticky header */}
+        <div className={`flex-1 w-full ${isMobile ? 'px-3 py-3' : 'max-w-4xl px-4 py-6'} overflow-x-hidden`}>
+          {/* Mobile header */}
           {isMobile ? (
-            <motion.div 
-              className="sticky top-0 z-30 bg-background/95 backdrop-blur-lg border-b border-border safe-area-top"
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="flex items-center gap-2 px-2 py-2">
-                {/* Back button */}
-                <motion.button 
-                  onClick={handleGoHome}
-                  className="p-2.5 rounded-full hover:bg-secondary active:scale-95 transition-all"
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </motion.button>
-                
-                {/* Search input - takes remaining space */}
-                <div className="flex-1">
-                  <MobileSearchBar
-                    onSearch={handleSearch}
-                    onLucky={handleLucky}
-                    onNavigate={handleNavigate}
-                    initialQuery={searchQuery}
-                    compact
-                    inputRef={searchInputRef}
-                  />
+            <div className="flex flex-col gap-3 mb-3">
+              <div className="flex items-center justify-between">
+                <button onClick={handleGoHome} className="flex-shrink-0">
+                  <RidelLogo size="small" />
+                </button>
+                <div className="flex items-center gap-2">
+                  <SettingsDialog />
+                  <button
+                    onClick={() => setShowBookmarks(true)}
+                    className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-secondary"
+                  >
+                    <Bookmark className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
-              
-              {/* Tabs - horizontally scrollable */}
-              <div className="overflow-x-auto scrollbar-hide">
-                <SearchTabs activeTab={activeTab} onTabChange={handleTabChange} />
-              </div>
-            </motion.div>
+              <MobileSearchBar
+                onSearch={handleSearch}
+                onLucky={handleLucky}
+                onNavigate={handleNavigate}
+                initialQuery={searchQuery}
+                compact
+                inputRef={searchInputRef}
+              />
+            </div>
           ) : (
             <div className="flex items-center gap-6 mb-4">
               <button onClick={handleGoHome}>
@@ -445,17 +432,16 @@ const Search = () => {
             </div>
           )}
           
-          {/* Desktop tabs */}
-          {!isMobile && <SearchTabs activeTab={activeTab} onTabChange={handleTabChange} />}
+          <SearchTabs activeTab={activeTab} onTabChange={handleTabChange} />
           
           {activeTab === "all" && (
-            <div className={`flex items-center gap-4 py-3 border-b border-border ${isMobile ? 'px-4' : ''}`}>
+            <div className="flex items-center gap-4 py-3 border-b border-border">
               <DateFilter value={dateRange} onChange={handleDateChange} />
             </div>
           )}
           
           {activeTab === "all" && (
-            <div className={`flex flex-col lg:flex-row gap-6 ${isMobile ? 'px-4' : ''}`}>
+            <div className="flex flex-col lg:flex-row gap-6">
               {/* Main results column */}
               <div className="flex-1 min-w-0">
                 {/* Spell Correction */}
@@ -469,20 +455,6 @@ const Search = () => {
                 )}
                 
                 <AISummary query={searchQuery} results={results} />
-                
-                {/* Mobile Knowledge Panel - shown before results on mobile */}
-                {isMobile && knowledgePanel && !loading && (
-                  <motion.div 
-                    className="mb-4"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <KnowledgePanel 
-                      data={knowledgePanel} 
-                      onNavigate={handleResultClick} 
-                    />
-                  </motion.div>
-                )}
                 
                 {/* First result with sitelinks */}
                 {results.length > 0 && results[0].sitelinks && results[0].sitelinks.length > 0 && !loading && (
@@ -515,17 +487,15 @@ const Search = () => {
           )}
           
           {activeTab === "images" && (
-            <div className={isMobile ? 'px-2' : ''}>
-              <ImageResults
-                results={imageResults}
-                loading={loading}
-                error={error}
-              />
-            </div>
+            <ImageResults
+              results={imageResults}
+              loading={loading}
+              error={error}
+            />
           )}
           
           {activeTab === "videos" && (
-            <div className={`py-4 ${isMobile ? 'px-4' : ''}`}>
+            <div className="py-4">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -536,13 +506,12 @@ const Search = () => {
               ) : videoResults.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">No video results found.</p>
               ) : (
-                <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {videoResults.map((video, index) => (
-                    <motion.div
+                    <div
                       key={index}
-                      className="group cursor-pointer rounded-xl overflow-hidden bg-card border border-border hover:border-primary/50 transition-colors active:scale-[0.98]"
+                      className="group cursor-pointer rounded-lg overflow-hidden bg-card border border-border hover:border-primary/50 transition-colors"
                       onClick={() => window.open(video.url, '_blank')}
-                      whileTap={{ scale: 0.98 }}
                     >
                       <div className="aspect-video relative">
                         <img
@@ -568,7 +537,7 @@ const Search = () => {
                         <p className="font-medium line-clamp-2">{video.title}</p>
                         <p className="text-sm text-muted-foreground mt-1">{video.source}</p>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -576,32 +545,12 @@ const Search = () => {
           )}
           
           {activeTab === "news" && (
-            <div className={`py-12 text-center ${isMobile ? 'px-4' : ''}`}>
+            <div className="py-12 text-center">
               <p className="text-muted-foreground">News search coming soon!</p>
             </div>
           )}
         </div>
       </div>
-
-      {/* Mobile Bottom Navigation */}
-      {isMobile && (
-        <MobileBottomNav
-          user={user}
-          onOpenBookmarks={() => setShowBookmarks(true)}
-          onOpenFavorites={() => setShowFavorites(true)}
-          onOpenSettings={() => {}}
-          onOpenApps={() => setShowMobileApps(true)}
-        />
-      )}
-
-      {/* Mobile Apps Sheet */}
-      {isMobile && (
-        <MobileAppsSheet 
-          isOpen={showMobileApps} 
-          onClose={() => setShowMobileApps(false)}
-          onNavigate={handleNavigate}
-        />
-      )}
 
       <BookmarksPanel
         isOpen={showBookmarks}
