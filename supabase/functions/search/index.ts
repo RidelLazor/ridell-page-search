@@ -315,10 +315,29 @@ serve(async (req) => {
     let knowledgePanel = null;
     if (companyDetection.isCompany && companyDetection.companyInfo) {
       const info = companyDetection.companyInfo;
+      
+      // Generate logo URL using Clearbit Logo API (free, no API key needed)
+      let logoUrl: string | undefined;
+      if (info.website) {
+        try {
+          const domain = new URL(info.website).hostname.replace('www.', '');
+          logoUrl = `https://logo.clearbit.com/${domain}`;
+        } catch {
+          console.log('Could not parse website for logo:', info.website);
+        }
+      }
+      
+      // Fallback: try to get logo from company name
+      if (!logoUrl) {
+        const sanitizedName = info.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        logoUrl = `https://logo.clearbit.com/${sanitizedName}.com`;
+      }
+      
       knowledgePanel = {
         title: info.name,
         subtitle: info.type || 'Company',
         description: info.description,
+        image: logoUrl,
         source: info.website ? new URL(info.website).hostname.replace('www.', '') : 'Company Information',
         sourceUrl: info.website || (finalResults[0]?.url || '#'),
         // Additional company-specific info
