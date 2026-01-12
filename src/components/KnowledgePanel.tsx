@@ -1,11 +1,17 @@
 import { motion } from "framer-motion";
-import { ChevronRight, ExternalLink, Star } from "lucide-react";
+import { ChevronRight, ExternalLink, Star, Search } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface AppRating {
   store: string;
   rating: string;
   url?: string;
+}
+
+interface RelatedCompany {
+  name: string;
+  logo?: string;
 }
 
 interface KnowledgePanelData {
@@ -23,6 +29,7 @@ interface KnowledgePanelData {
   headquarters?: string;
   industry?: string;
   ceo?: string;
+  relatedCompanies?: RelatedCompany[];
 }
 
 interface KnowledgePanelProps {
@@ -32,10 +39,15 @@ interface KnowledgePanelProps {
 
 const KnowledgePanel = ({ data, onNavigate }: KnowledgePanelProps) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const navigate = useNavigate();
 
   if (!data) {
     return null;
   }
+
+  const handleSearchRelated = (companyName: string) => {
+    navigate(`/search?q=${encodeURIComponent(companyName)}&tab=all`);
+  };
 
   const allImages = data.images?.length ? data.images : data.image ? [data.image] : [];
 
@@ -170,6 +182,47 @@ const KnowledgePanel = ({ data, onNavigate }: KnowledgePanelProps) => {
               <span className="font-medium">{attr.value}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* People also search for */}
+      {data.relatedCompanies && data.relatedCompanies.length > 0 && (
+        <div className="space-y-3 border-t border-border pt-4">
+          <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Search className="h-4 w-4" />
+            People also search for
+          </h3>
+          <div className="grid grid-cols-3 gap-2">
+            {data.relatedCompanies.slice(0, 6).map((company, idx) => (
+              <motion.button
+                key={idx}
+                onClick={() => handleSearchRelated(company.name)}
+                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center overflow-hidden shadow-sm">
+                  {company.logo ? (
+                    <img
+                      src={company.logo}
+                      alt={company.name}
+                      className="w-8 h-8 object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <span className={`text-xs font-bold text-muted-foreground ${company.logo ? 'hidden' : ''}`}>
+                    {company.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <span className="text-xs font-medium text-center line-clamp-1 group-hover:text-primary transition-colors">
+                  {company.name}
+                </span>
+              </motion.button>
+            ))}
+          </div>
         </div>
       )}
 

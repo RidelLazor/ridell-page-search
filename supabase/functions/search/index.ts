@@ -30,7 +30,7 @@ function isDuckDuckGoUrl(url: string): boolean {
   }
 }
 
-// Detect if query is a company name using AI
+// Detect if query is a company name using AI and get related companies
 async function detectCompanyWithAI(query: string): Promise<{
   isCompany: boolean;
   companyInfo?: {
@@ -42,6 +42,10 @@ async function detectCompanyWithAI(query: string): Promise<{
     industry?: string;
     ceo?: string;
     website?: string;
+    relatedCompanies?: Array<{
+      name: string;
+      logo?: string;
+    }>;
   };
 }> {
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -75,6 +79,9 @@ Return a JSON object with:
   - "industry": primary industry
   - "ceo": current CEO name (if known)
   - "website": official website URL
+  - "relatedCompanies": array of 4-6 similar/related companies that people also search for, each with:
+    - "name": company name
+    - "domain": company domain for logo (e.g., "apple.com", "microsoft.com")
 
 Return ONLY valid JSON, no other text.`
           },
@@ -83,7 +90,7 @@ Return ONLY valid JSON, no other text.`
             content: `Is this a company/organization? Query: "${query}"`
           }
         ],
-        max_tokens: 300,
+        max_tokens: 500,
       }),
     });
 
@@ -99,6 +106,15 @@ Return ONLY valid JSON, no other text.`
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.isCompany && parsed.companyInfo) {
+        // Add logo URLs to related companies
+        if (parsed.companyInfo.relatedCompanies) {
+          parsed.companyInfo.relatedCompanies = parsed.companyInfo.relatedCompanies.map((company: any) => ({
+            name: company.name,
+            logo: company.domain ? `https://logo.clearbit.com/${company.domain}` : undefined
+          }));
+        }
+      }
       return {
         isCompany: parsed.isCompany === true,
         companyInfo: parsed.isCompany ? parsed.companyInfo : undefined
@@ -345,6 +361,8 @@ serve(async (req) => {
         headquarters: info.headquarters,
         industry: info.industry,
         ceo: info.ceo,
+        // Related companies for "People also search for"
+        relatedCompanies: info.relatedCompanies,
       };
     }
 
