@@ -18,6 +18,11 @@ interface KnowledgePanelData {
   sourceUrl?: string;
   attributes?: { label: string; value: string }[];
   appRatings?: AppRating[];
+  // Company-specific fields
+  founded?: string;
+  headquarters?: string;
+  industry?: string;
+  ceo?: string;
 }
 
 interface KnowledgePanelProps {
@@ -119,7 +124,37 @@ const KnowledgePanel = ({ data, onNavigate }: KnowledgePanelProps) => {
         </p>
       )}
 
-      {/* Attributes */}
+      {/* Company Info - Generated dynamically from company-specific fields */}
+      {(data.founded || data.headquarters || data.industry || data.ceo) && (
+        <div className="space-y-2 border-t border-border pt-3">
+          {data.ceo && (
+            <div className="flex items-start text-sm">
+              <span className="text-muted-foreground w-24 flex-shrink-0">CEO</span>
+              <span className="font-medium">{data.ceo}</span>
+            </div>
+          )}
+          {data.founded && (
+            <div className="flex items-start text-sm">
+              <span className="text-muted-foreground w-24 flex-shrink-0">Founded</span>
+              <span className="font-medium">{data.founded}</span>
+            </div>
+          )}
+          {data.headquarters && (
+            <div className="flex items-start text-sm">
+              <span className="text-muted-foreground w-24 flex-shrink-0">Headquarters</span>
+              <span className="font-medium">{data.headquarters}</span>
+            </div>
+          )}
+          {data.industry && (
+            <div className="flex items-start text-sm">
+              <span className="text-muted-foreground w-24 flex-shrink-0">Industry</span>
+              <span className="font-medium">{data.industry}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Custom Attributes */}
       {data.attributes && data.attributes.length > 0 && (
         <div className="space-y-2 border-t border-border pt-3">
           {data.attributes.map((attr, idx) => (
