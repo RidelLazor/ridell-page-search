@@ -30,6 +30,88 @@ function isDuckDuckGoUrl(url: string): boolean {
   }
 }
 
+// Detect if query is a company name using AI
+async function detectCompanyWithAI(query: string): Promise<{
+  isCompany: boolean;
+  companyInfo?: {
+    name: string;
+    type: string;
+    description: string;
+    founded?: string;
+    headquarters?: string;
+    industry?: string;
+    ceo?: string;
+    website?: string;
+  };
+}> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  
+  if (!LOVABLE_API_KEY) {
+    return { isCompany: false };
+  }
+
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-lite',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a company name detector. Analyze if the query is a well-known company, organization, or brand name. Only return true for actual companies/organizations like Google, Apple, Microsoft, Roblox, Amazon, Meta, Tesla, Nike, etc. Do NOT return true for generic searches, products, people names (unless they're founders being searched in company context), or general topics.
+
+Return a JSON object with:
+- "isCompany": boolean (true only for recognized companies/brands)
+- "companyInfo": object with company details if isCompany is true:
+  - "name": official company name
+  - "type": type (e.g., "Technology company", "Video game platform", "Retail company")
+  - "description": brief 1-2 sentence description
+  - "founded": year founded (if known)
+  - "headquarters": city/country (if known)
+  - "industry": primary industry
+  - "ceo": current CEO name (if known)
+  - "website": official website URL
+
+Return ONLY valid JSON, no other text.`
+          },
+          {
+            role: 'user',
+            content: `Is this a company/organization? Query: "${query}"`
+          }
+        ],
+        max_tokens: 300,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Company detection failed:', response.status);
+      return { isCompany: false };
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    // Parse the AI response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        isCompany: parsed.isCompany === true,
+        companyInfo: parsed.isCompany ? parsed.companyInfo : undefined
+      };
+    }
+    
+    return { isCompany: false };
+  } catch (error) {
+    console.error('Company detection error:', error);
+    return { isCompany: false };
+  }
+}
+
 // Generate AI-enhanced descriptions for results
 async function enhanceDescriptionsWithAI(
   results: Array<{ title: string; url: string; description: string }>,
@@ -199,11 +281,16 @@ serve(async (req) => {
 
     console.log(`Found ${results.length} results after filtering`);
 
-    // Enhance descriptions with AI
-    const enhancedResults = await enhanceDescriptionsWithAI(
-      results.map(r => ({ title: r.title, url: r.url, description: r.description })),
-      query
-    );
+    // Run AI tasks in parallel: description enhancement and company detection
+    const [enhancedResults, companyDetection] = await Promise.all([
+      enhanceDescriptionsWithAI(
+        results.map(r => ({ title: r.title, url: r.url, description: r.description })),
+        query
+      ),
+      detectCompanyWithAI(query)
+    ]);
+
+    console.log('Company detection result:', JSON.stringify(companyDetection));
 
     // Add sitelinks to first result
     const finalResults = enhancedResults.map((r, i) => {
@@ -224,29 +311,22 @@ serve(async (req) => {
       return r;
     });
 
-    // Try to build a knowledge panel from the first result
+    // Only create knowledge panel if AI detected a company
     let knowledgePanel = null;
-    if (finalResults.length > 0) {
-      const firstResult = finalResults[0];
-      try {
-        const urlObj = new URL(firstResult.url);
-        // Only create knowledge panel for well-known domains
-        const knownDomains = ['wikipedia.org', 'imdb.com', 'rottentomatoes.com', 'github.com'];
-        const isKnownDomain = knownDomains.some(d => urlObj.hostname.includes(d));
-        
-        if (isKnownDomain || finalResults.length >= 3) {
-          knowledgePanel = {
-            title: query,
-            subtitle: urlObj.hostname.replace('www.', '').split('.')[0].charAt(0).toUpperCase() + 
-                     urlObj.hostname.replace('www.', '').split('.')[0].slice(1),
-            description: firstResult.description,
-            source: urlObj.hostname.replace('www.', ''),
-            sourceUrl: firstResult.url,
-          };
-        }
-      } catch (e) {
-        // Ignore URL parsing errors
-      }
+    if (companyDetection.isCompany && companyDetection.companyInfo) {
+      const info = companyDetection.companyInfo;
+      knowledgePanel = {
+        title: info.name,
+        subtitle: info.type || 'Company',
+        description: info.description,
+        source: info.website ? new URL(info.website).hostname.replace('www.', '') : 'Company Information',
+        sourceUrl: info.website || (finalResults[0]?.url || '#'),
+        // Additional company-specific info
+        founded: info.founded,
+        headquarters: info.headquarters,
+        industry: info.industry,
+        ceo: info.ceo,
+      };
     }
 
     return new Response(
