@@ -7,6 +7,7 @@ import SearchBar from "@/components/SearchBar";
 import MobileSearchBar from "@/components/MobileSearchBar";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import MobileAppsSheet from "@/components/MobileAppsSheet";
+import AppTabs from "@/components/AppTabs";
 import SearchResults from "@/components/SearchResults";
 import MixedSearchResults from "@/components/MixedSearchResults";
 import BookmarksPanel from "@/components/BookmarksPanel";
@@ -421,6 +422,20 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-transparent overflow-hidden">
+      {/* App-only Tab Navigation */}
+      {isMobile && (
+        <AppTabs 
+          currentQuery={searchQuery}
+          onTabChange={(tab) => {
+            if (tab.query) {
+              setSearchQuery(tab.query);
+            } else {
+              handleGoHome();
+            }
+          }}
+          onNewTab={handleGoHome}
+        />
+      )}
       <AnimatePresence mode="wait">
         {viewState === "home" && !isTransitioning && (
           <motion.div
