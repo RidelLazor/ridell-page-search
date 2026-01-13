@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Download, Smartphone, Sparkles, Zap, Layers } from "lucide-react";
+import { X, Download, Monitor, Smartphone, Sparkles, Zap, Layers } from "lucide-react";
 import { usePWA } from "@/hooks/usePWA";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -12,19 +12,19 @@ const InstallPrompt = () => {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Only show on mobile, when installable, not already installed, and not dismissed
+    // Show on both mobile and desktop when installable
     const hasSeenPrompt = localStorage.getItem("ridel-install-prompt-dismissed");
     const lastDismissed = hasSeenPrompt ? parseInt(hasSeenPrompt) : 0;
     const daysSinceDismissed = (Date.now() - lastDismissed) / (1000 * 60 * 60 * 24);
     
     // Show again after 3 days
-    if (isMobile && isInstallable && !isInstalled && !isStandalone && daysSinceDismissed > 3) {
+    if (isInstallable && !isInstalled && !isStandalone && daysSinceDismissed > 3) {
       const timer = setTimeout(() => {
         setShowPrompt(true);
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [isMobile, isInstallable, isInstalled, isStandalone]);
+  }, [isInstallable, isInstalled, isStandalone]);
 
   const handleInstall = async () => {
     const installed = await promptInstall();
@@ -56,13 +56,17 @@ const InstallPrompt = () => {
             onClick={handleDismiss}
           />
           
-          {/* Modal */}
+          {/* Modal - Desktop: centered, Mobile: bottom sheet */}
           <motion.div
-            initial={{ opacity: 0, y: 100, scale: 0.9 }}
+            initial={{ opacity: 0, y: isMobile ? 100 : 0, scale: isMobile ? 0.9 : 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 100, scale: 0.9 }}
+            exit={{ opacity: 0, y: isMobile ? 100 : 0, scale: isMobile ? 0.9 : 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 p-4"
+            className={`fixed z-50 ${
+              isMobile 
+                ? "bottom-0 left-0 right-0 p-4" 
+                : "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-4"
+            }`}
           >
             <div className="bg-card border border-border rounded-3xl shadow-2xl overflow-hidden max-w-md mx-auto">
               {/* Header with gradient */}
@@ -81,11 +85,17 @@ const InstallPrompt = () => {
                 
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-2xl bg-white shadow-lg flex items-center justify-center">
-                    <Smartphone className="h-8 w-8 text-primary" />
+                    {isMobile ? (
+                      <Smartphone className="h-8 w-8 text-primary" />
+                    ) : (
+                      <Monitor className="h-8 w-8 text-primary" />
+                    )}
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-white">Install Ridel App</h2>
-                    <p className="text-white/80 text-sm">Get the best experience</p>
+                    <p className="text-white/80 text-sm">
+                      {isMobile ? "Get the best mobile experience" : "Get the full desktop experience"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -103,7 +113,9 @@ const InstallPrompt = () => {
                     </div>
                     <div>
                       <p className="font-medium text-sm">Tab Navigation</p>
-                      <p className="text-xs text-muted-foreground">Switch between searches easily</p>
+                      <p className="text-xs text-muted-foreground">
+                        {isMobile ? "Switch between searches easily" : "Browser-like tabs for multiple searches"}
+                      </p>
                     </div>
                   </div>
                   
@@ -123,7 +135,9 @@ const InstallPrompt = () => {
                     </div>
                     <div>
                       <p className="font-medium text-sm">Exclusive Features</p>
-                      <p className="text-xs text-muted-foreground">Quick actions, gestures & more</p>
+                      <p className="text-xs text-muted-foreground">
+                        {isMobile ? "Quick actions, gestures & more" : "Keyboard shortcuts, quick actions & more"}
+                      </p>
                     </div>
                   </div>
                 </div>
