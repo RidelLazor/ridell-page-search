@@ -17,11 +17,13 @@ import GoogleAppsGrid from "@/components/GoogleAppsGrid";
 import SpellCorrection from "@/components/SpellCorrection";
 import KnowledgePanel from "@/components/KnowledgePanel";
 import Sitelinks from "@/components/Sitelinks";
+import AppTabs from "@/components/AppTabs";
 import { CustomizeButton, CustomizePanel } from "@/components/CustomizePanel";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useTransitionSound } from "@/hooks/useTransitionSound";
 import { useSoundSettings } from "@/hooks/useSoundSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePWA } from "@/hooks/usePWA";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
@@ -363,8 +365,23 @@ const Search = () => {
     </div>
   );
 
+  const { isStandalone } = usePWA();
+
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className={`min-h-screen bg-background overflow-x-hidden ${isStandalone && !isMobile ? 'pt-10' : ''}`}>
+      {/* App-only Tab Navigation */}
+      <AppTabs 
+        currentQuery={searchQuery}
+        onTabChange={(tab) => {
+          if (tab.query) {
+            setSearchParams({ q: tab.query, tab: activeTab });
+            performSearch(tab.query);
+          } else {
+            navigate("/");
+          }
+        }}
+        onNewTab={() => navigate("/")}
+      />
       <div className="flex min-h-screen">
         {/* Sidebar toggle - desktop only */}
         {!isMobile && (

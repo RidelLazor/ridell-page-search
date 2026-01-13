@@ -422,20 +422,18 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-transparent overflow-hidden">
-      {/* App-only Tab Navigation */}
-      {isMobile && (
-        <AppTabs 
-          currentQuery={searchQuery}
-          onTabChange={(tab) => {
-            if (tab.query) {
-              setSearchQuery(tab.query);
-            } else {
-              handleGoHome();
-            }
-          }}
-          onNewTab={handleGoHome}
-        />
-      )}
+      {/* App-only Tab Navigation - Both Mobile and Desktop */}
+      <AppTabs 
+        currentQuery={searchQuery}
+        onTabChange={(tab) => {
+          if (tab.query) {
+            setSearchQuery(tab.query);
+          } else {
+            handleGoHome();
+          }
+        }}
+        onNewTab={handleGoHome}
+      />
       <AnimatePresence mode="wait">
         {viewState === "home" && !isTransitioning && (
           <motion.div
