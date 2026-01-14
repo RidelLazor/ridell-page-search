@@ -368,7 +368,7 @@ const Search = () => {
   const { isStandalone } = usePWA();
 
   return (
-    <div className={`min-h-screen bg-background overflow-x-hidden ${isStandalone && !isMobile ? 'pt-10' : ''}`}>
+    <div className={`min-h-[100dvh] bg-background overflow-x-hidden overflow-y-auto ${isStandalone && !isMobile ? 'pt-10' : ''}`}>
       {/* App-only Tab Navigation */}
       <AppTabs 
         currentQuery={searchQuery}
@@ -382,7 +382,7 @@ const Search = () => {
         }}
         onNewTab={() => navigate("/")}
       />
-      <div className="flex min-h-screen">
+      <div className="flex min-h-[100dvh]">
         {/* Sidebar toggle - desktop only */}
         {!isMobile && (
           <button
@@ -403,7 +403,7 @@ const Search = () => {
         )}
 
         {/* Main content */}
-        <div className={`flex-1 w-full ${isMobile ? 'px-3 py-3' : 'max-w-4xl px-4 py-6'} overflow-x-hidden`}>
+        <div className={`flex-1 w-full ${isMobile ? 'px-3 py-3' : 'w-full max-w-4xl px-4 py-6 mx-auto'} overflow-x-hidden`}>
           {/* Mobile header */}
           {isMobile ? (
             <div className="flex flex-col gap-3 mb-3">

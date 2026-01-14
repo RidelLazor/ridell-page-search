@@ -421,7 +421,7 @@ const Index = () => {
   );
 
   return (
-    <div className="min-h-screen bg-transparent overflow-hidden">
+    <div className="min-h-screen bg-transparent overflow-x-hidden">
       {/* App-only Tab Navigation - Both Mobile and Desktop */}
       <AppTabs 
         currentQuery={searchQuery}

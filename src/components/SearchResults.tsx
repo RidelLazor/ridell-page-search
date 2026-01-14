@@ -80,7 +80,7 @@ const SearchResults = ({ results, loading, error, onResultClick }: SearchResults
   return (
     <div className="space-y-6 py-4">
       {results.map((result, index) => (
-        <div key={index} className="max-w-2xl group">
+        <div key={index} className="w-full max-w-2xl group">
           <div className="flex items-start gap-3">
             <button
               onClick={() => onResultClick(result.url)}
