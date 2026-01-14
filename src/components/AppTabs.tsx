@@ -18,7 +18,7 @@ interface AppTabsProps {
 }
 
 const AppTabs = ({ onTabChange, onNewTab, currentQuery }: AppTabsProps) => {
-  const { isStandalone } = usePWA();
+  const { isStandalone, isReady } = usePWA();
   const isMobile = useIsMobile();
   const [tabs, setTabs] = useState<Tab[]>([
     { id: "1", title: "Home", query: "", type: "home" },
@@ -26,8 +26,8 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery }: AppTabsProps) => {
   const [activeTabId, setActiveTabId] = useState("1");
   const [showTabs, setShowTabs] = useState(false);
 
-  // Only show in standalone (installed) mode
-  if (!isStandalone) {
+  // Don't render until PWA state is ready, and only show in standalone mode
+  if (!isReady || !isStandalone) {
     return null;
   }
 
