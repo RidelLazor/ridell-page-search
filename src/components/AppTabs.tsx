@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Layers, Home, Search as SearchIcon, Globe, ArrowLeft, ArrowRight, RotateCw } from "lucide-react";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { Plus, X, Layers, Home, Search as SearchIcon, Globe } from "lucide-react";
 import { usePWA } from "@/hooks/usePWA";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -51,6 +51,19 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery, currentUrl }: AppTabsPro
   const [showTabs, setShowTabs] = useState(false);
   const lastQueryRef = useRef<string | undefined>(undefined);
   const lastUrlRef = useRef<string | undefined>(undefined);
+  const initializedRef = useRef(false);
+
+  // Initialize refs on mount
+  useEffect(() => {
+    if (!initializedRef.current) {
+      const activeTab = tabs.find(t => t.id === activeTabId);
+      if (activeTab) {
+        lastQueryRef.current = activeTab.query;
+        lastUrlRef.current = activeTab.url;
+      }
+      initializedRef.current = true;
+    }
+  }, []);
 
   // Persist tabs to sessionStorage
   useEffect(() => {
@@ -94,19 +107,24 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery, currentUrl }: AppTabsPro
   useEffect(() => {
     if (currentUrl !== undefined && currentUrl !== lastUrlRef.current) {
       lastUrlRef.current = currentUrl;
-      setTabs(prevTabs =>
-        prevTabs.map(t =>
-          t.id === activeTabId
-            ? {
-                ...t,
-                url: currentUrl,
-                title: new URL(currentUrl).hostname,
-                type: "webview",
-                query: undefined,
-              }
-            : t
-        )
-      );
+      try {
+        const hostname = new URL(currentUrl).hostname;
+        setTabs(prevTabs =>
+          prevTabs.map(t =>
+            t.id === activeTabId
+              ? {
+                  ...t,
+                  url: currentUrl,
+                  title: hostname,
+                  type: "webview",
+                  query: undefined,
+                }
+              : t
+          )
+        );
+      } catch {
+        // Invalid URL, ignore
+      }
     }
   }, [currentUrl, activeTabId]);
 
@@ -150,23 +168,29 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery, currentUrl }: AppTabsPro
     setShowTabs(false);
   }, [onTabChange]);
 
-  // Open URL in current tab as webview
-  const openUrlInTab = useCallback((url: string) => {
-    try {
-      const hostname = new URL(url).hostname;
-      lastUrlRef.current = url;
-      lastQueryRef.current = undefined;
-      setTabs(prevTabs =>
-        prevTabs.map(t =>
-          t.id === activeTabId
-            ? { ...t, url, title: hostname, type: "webview" as const, query: undefined }
-            : t
-        )
-      );
-    } catch (e) {
-      console.error("Invalid URL:", url);
+  // Switch to next/previous tab
+  const switchTab = useCallback((direction: "next" | "prev") => {
+    const currentIndex = tabs.findIndex(t => t.id === activeTabId);
+    if (currentIndex === -1) return;
+    
+    let newIndex: number;
+    if (direction === "next") {
+      newIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+    } else {
+      newIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
     }
-  }, [activeTabId]);
+    
+    const newTab = tabs[newIndex];
+    selectTab(newTab);
+  }, [tabs, activeTabId, selectTab]);
+
+  // Handle swipe on tab card in mobile view
+  const handleTabDrag = useCallback((tabId: string, info: PanInfo) => {
+    // Swipe up to close
+    if (info.offset.y < -100 && tabs.length > 1) {
+      closeTab(tabId);
+    }
+  }, [tabs.length, closeTab]);
 
   // Don't render until PWA state is ready, and only show in standalone mode
   if (!isReady || !isStandalone) {
@@ -174,6 +198,7 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery, currentUrl }: AppTabsPro
   }
 
   const activeTab = tabs.find(t => t.id === activeTabId);
+  const currentTabIndex = tabs.findIndex(t => t.id === activeTabId);
 
   // Desktop: Chrome-like tabs
   if (!isMobile) {
@@ -231,7 +256,7 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery, currentUrl }: AppTabsPro
     );
   }
 
-  // Mobile: Tab counter + fullscreen tab switcher
+  // Mobile: Tab counter + fullscreen tab switcher with swipe gestures
   return (
     <>
       {/* Floating tab counter button */}
@@ -248,6 +273,21 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery, currentUrl }: AppTabsPro
           </span>
         </div>
       </motion.button>
+
+      {/* Tab indicator dots for swipe navigation hint */}
+      {tabs.length > 1 && (
+        <div className="fixed bottom-[88px] left-1/2 -translate-x-1/2 z-40 flex gap-1.5">
+          {tabs.map((tab, index) => (
+            <motion.div
+              key={tab.id}
+              className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                index === currentTabIndex ? "bg-primary" : "bg-muted-foreground/30"
+              }`}
+              animate={{ scale: index === currentTabIndex ? 1.2 : 1 }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Fullscreen tab view */}
       <AnimatePresence>
@@ -283,7 +323,12 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery, currentUrl }: AppTabsPro
               </div>
             </div>
 
-            {/* Tab grid */}
+            {/* Swipe hint */}
+            <p className="text-center text-xs text-muted-foreground py-2">
+              Swipe up on a tab to close it
+            </p>
+
+            {/* Tab grid with swipe-to-close */}
             <div className="flex-1 overflow-auto p-4">
               <div className="grid grid-cols-2 gap-3">
                 <AnimatePresence mode="popLayout">
@@ -292,14 +337,19 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery, currentUrl }: AppTabsPro
                       key={tab.id}
                       layout
                       initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      className={`relative aspect-[3/4] rounded-xl overflow-hidden cursor-pointer transition-all ${
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, y: -100 }}
+                      drag="y"
+                      dragConstraints={{ top: 0, bottom: 0 }}
+                      dragElastic={0.5}
+                      onDragEnd={(_, info) => handleTabDrag(tab.id, info)}
+                      className={`relative aspect-[3/4] rounded-xl overflow-hidden cursor-pointer transition-all touch-none ${
                         activeTabId === tab.id
                           ? "ring-2 ring-primary"
                           : "ring-1 ring-border"
                       }`}
                       onClick={() => selectTab(tab)}
+                      whileTap={{ scale: 0.98 }}
                     >
                       {/* Tab preview */}
                       <div className="absolute inset-0 bg-card flex flex-col">

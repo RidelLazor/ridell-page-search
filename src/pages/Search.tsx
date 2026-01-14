@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Bookmark, ChevronLeft, ChevronRight, Loader2, History, Star } from "lucide-react";
+import { Bookmark, ChevronLeft, ChevronRight, History, Star } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import RidelLogo from "@/components/RidelLogo";
@@ -21,8 +21,6 @@ import AppTabs from "@/components/AppTabs";
 import InAppBrowser from "@/components/InAppBrowser";
 import { CustomizeButton, CustomizePanel } from "@/components/CustomizePanel";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { useTransitionSound } from "@/hooks/useTransitionSound";
-import { useSoundSettings } from "@/hooks/useSoundSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePWA } from "@/hooks/usePWA";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,15 +92,13 @@ const Search = () => {
   const [browserUrl, setBrowserUrl] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const { playWhooshSound } = useTransitionSound();
-  const { soundEnabled } = useSoundSettings();
   const isMobile = useIsMobile();
   const { isStandalone } = usePWA();
 
   // Check auth state
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         setUser(session?.user ?? null);
       }
     );
@@ -278,14 +274,14 @@ const Search = () => {
     window.location.href = url;
   };
 
-  const handleResultClick = (url: string) => {
-    // In standalone mode (installed app), try to open in-app browser
+  const handleResultClick = useCallback((url: string) => {
+    // Always use in-app browser in standalone mode (both mobile and desktop)
     if (isStandalone) {
       setBrowserUrl(url);
     } else {
-      window.location.href = url;
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
-  };
+  }, [isStandalone]);
 
   const closeBrowser = () => {
     setBrowserUrl(null);
@@ -541,7 +537,7 @@ const Search = () => {
                     <div
                       key={index}
                       className="group cursor-pointer rounded-lg overflow-hidden bg-card border border-border hover:border-primary/50 transition-colors"
-                      onClick={() => window.open(video.url, '_blank')}
+                      onClick={() => handleResultClick(video.url)}
                     >
                       <div className="aspect-video relative">
                         <img
