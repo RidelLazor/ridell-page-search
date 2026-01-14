@@ -372,10 +372,10 @@ const Search = () => {
       {/* App-only Tab Navigation */}
       <AppTabs 
         currentQuery={searchQuery}
-        onTabChange={(tab) => {
-          if (tab.query) {
-            setSearchParams({ q: tab.query, tab: activeTab });
-            performSearch(tab.query);
+        onTabChange={(query) => {
+          if (query) {
+            setSearchParams({ q: query, tab: activeTab });
+            performSearch(query);
           } else {
             navigate("/");
           }

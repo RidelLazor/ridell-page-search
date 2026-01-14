@@ -425,9 +425,9 @@ const Index = () => {
       {/* App-only Tab Navigation - Both Mobile and Desktop */}
       <AppTabs 
         currentQuery={searchQuery}
-        onTabChange={(tab) => {
-          if (tab.query) {
-            setSearchQuery(tab.query);
+        onTabChange={(query) => {
+          if (query) {
+            setSearchQuery(query);
           } else {
             handleGoHome();
           }
