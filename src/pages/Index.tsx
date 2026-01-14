@@ -425,9 +425,12 @@ const Index = () => {
       {/* App-only Tab Navigation - Both Mobile and Desktop */}
       <AppTabs 
         currentQuery={searchQuery}
-        onTabChange={(query) => {
-          if (query) {
-            setSearchQuery(query);
+        onTabChange={(tab) => {
+          if (tab.type === "search" && tab.query) {
+            setSearchQuery(tab.query);
+          } else if (tab.type === "webview" && tab.url) {
+            // For webview, navigate to the URL
+            window.location.href = tab.url;
           } else {
             handleGoHome();
           }
