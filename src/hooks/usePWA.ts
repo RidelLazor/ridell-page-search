@@ -10,26 +10,43 @@ export function usePWA() {
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    // Ensure we're in a browser environment
+    if (typeof window === "undefined") {
+      setIsReady(true);
+      return;
+    }
+
     // Check if running in standalone mode (installed as PWA)
     const checkStandalone = () => {
-      const standalone = window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as any).standalone === true ||
-        document.referrer.includes("android-app://");
-      setIsStandalone(standalone);
-      setIsInstalled(standalone);
+      try {
+        const standalone = window.matchMedia("(display-mode: standalone)").matches ||
+          (window.navigator as any).standalone === true ||
+          document.referrer.includes("android-app://");
+        setIsStandalone(standalone);
+        setIsInstalled(standalone);
+      } catch (e) {
+        console.error("Error checking standalone mode:", e);
+      }
     };
 
     checkStandalone();
+    setIsReady(true);
 
     // Listen for display mode changes
-    const mediaQuery = window.matchMedia("(display-mode: standalone)");
-    const handleChange = (e: MediaQueryListEvent) => {
-      setIsStandalone(e.matches);
-      setIsInstalled(e.matches);
-    };
-    mediaQuery.addEventListener("change", handleChange);
+    let mediaQuery: MediaQueryList | null = null;
+    try {
+      mediaQuery = window.matchMedia("(display-mode: standalone)");
+      const handleChange = (e: MediaQueryListEvent) => {
+        setIsStandalone(e.matches);
+        setIsInstalled(e.matches);
+      };
+      mediaQuery.addEventListener("change", handleChange);
+    } catch (e) {
+      console.error("Error setting up media query listener:", e);
+    }
 
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -50,7 +67,13 @@ export function usePWA() {
     window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
-      mediaQuery.removeEventListener("change", handleChange);
+      if (mediaQuery) {
+        try {
+          mediaQuery.removeEventListener("change", () => {});
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
@@ -61,13 +84,17 @@ export function usePWA() {
       return false;
     }
 
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === "accepted") {
-      setDeferredPrompt(null);
-      setIsInstallable(false);
-      return true;
+    try {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === "accepted") {
+        setDeferredPrompt(null);
+        setIsInstallable(false);
+        return true;
+      }
+    } catch (e) {
+      console.error("Error prompting install:", e);
     }
     
     return false;
@@ -77,6 +104,7 @@ export function usePWA() {
     isInstallable,
     isInstalled,
     isStandalone,
+    isReady,
     promptInstall,
   };
 }
