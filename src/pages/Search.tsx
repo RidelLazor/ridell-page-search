@@ -18,6 +18,7 @@ import SpellCorrection from "@/components/SpellCorrection";
 import KnowledgePanel from "@/components/KnowledgePanel";
 import Sitelinks from "@/components/Sitelinks";
 import AppTabs from "@/components/AppTabs";
+import InAppBrowser from "@/components/InAppBrowser";
 import { CustomizeButton, CustomizePanel } from "@/components/CustomizePanel";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useTransitionSound } from "@/hooks/useTransitionSound";
@@ -90,11 +91,13 @@ const Search = () => {
   const [spellCorrection, setSpellCorrection] = useState<string | null>(null);
   const [knowledgePanel, setKnowledgePanel] = useState<KnowledgePanelData | null>(null);
   const [originalQuery, setOriginalQuery] = useState<string>("");
+  const [browserUrl, setBrowserUrl] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { playWhooshSound } = useTransitionSound();
   const { soundEnabled } = useSoundSettings();
   const isMobile = useIsMobile();
+  const { isStandalone } = usePWA();
 
   // Check auth state
   useEffect(() => {
@@ -276,7 +279,16 @@ const Search = () => {
   };
 
   const handleResultClick = (url: string) => {
-    window.location.href = url;
+    // In standalone mode (installed app), try to open in-app browser
+    if (isStandalone) {
+      setBrowserUrl(url);
+    } else {
+      window.location.href = url;
+    }
+  };
+
+  const closeBrowser = () => {
+    setBrowserUrl(null);
   };
 
   const handleGoHome = () => {
@@ -365,17 +377,18 @@ const Search = () => {
     </div>
   );
 
-  const { isStandalone } = usePWA();
 
   return (
     <div className={`min-h-[100dvh] bg-background overflow-x-hidden overflow-y-auto ${isStandalone && !isMobile ? 'pt-10' : ''}`}>
       {/* App-only Tab Navigation */}
       <AppTabs 
         currentQuery={searchQuery}
-        onTabChange={(query) => {
-          if (query) {
-            setSearchParams({ q: query, tab: activeTab });
-            performSearch(query);
+        onTabChange={(tab) => {
+          if (tab.type === "search" && tab.query) {
+            setSearchParams({ q: tab.query, tab: activeTab });
+            performSearch(tab.query);
+          } else if (tab.type === "webview" && tab.url) {
+            window.location.href = tab.url;
           } else {
             navigate("/");
           }
@@ -583,6 +596,17 @@ const Search = () => {
 
       <CustomizeButton onClick={() => setShowCustomize(true)} />
       <CustomizePanel isOpen={showCustomize} onClose={() => setShowCustomize(false)} />
+
+      {/* In-app browser for standalone mode */}
+      <AnimatePresence>
+        {browserUrl && (
+          <InAppBrowser
+            url={browserUrl}
+            onClose={closeBrowser}
+            onNavigate={(url) => setBrowserUrl(url)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

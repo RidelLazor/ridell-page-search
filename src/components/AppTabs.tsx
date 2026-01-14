@@ -1,90 +1,179 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Layers, Home, Search as SearchIcon } from "lucide-react";
+import { Plus, X, Layers, Home, Search as SearchIcon, Globe, ArrowLeft, ArrowRight, RotateCw } from "lucide-react";
 import { usePWA } from "@/hooks/usePWA";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-interface Tab {
+export interface Tab {
   id: string;
   title: string;
-  query: string;
-  type: "home" | "search";
+  type: "home" | "search" | "webview";
+  query?: string;
+  url?: string;
 }
 
 interface AppTabsProps {
-  onTabChange?: (query: string) => void;
+  onTabChange?: (tab: Tab) => void;
   onNewTab?: () => void;
   currentQuery?: string;
+  currentUrl?: string;
 }
 
-const AppTabs = ({ onTabChange, onNewTab, currentQuery }: AppTabsProps) => {
+// Persist tabs in sessionStorage so they survive page navigations
+const TABS_STORAGE_KEY = "ridel-app-tabs";
+const ACTIVE_TAB_KEY = "ridel-active-tab";
+
+const getStoredTabs = (): Tab[] => {
+  try {
+    const stored = sessionStorage.getItem(TABS_STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error("Error reading tabs from storage:", e);
+  }
+  return [{ id: "1", title: "Home", type: "home", query: "" }];
+};
+
+const getStoredActiveTab = (): string => {
+  try {
+    return sessionStorage.getItem(ACTIVE_TAB_KEY) || "1";
+  } catch (e) {
+    return "1";
+  }
+};
+
+const AppTabs = ({ onTabChange, onNewTab, currentQuery, currentUrl }: AppTabsProps) => {
   const { isStandalone, isReady } = usePWA();
   const isMobile = useIsMobile();
-  const [tabs, setTabs] = useState<Tab[]>([
-    { id: "1", title: "Home", query: "", type: "home" },
-  ]);
-  const [activeTabId, setActiveTabId] = useState("1");
+  const [tabs, setTabs] = useState<Tab[]>(getStoredTabs);
+  const [activeTabId, setActiveTabId] = useState(getStoredActiveTab);
   const [showTabs, setShowTabs] = useState(false);
+  const lastQueryRef = useRef<string | undefined>(undefined);
+  const lastUrlRef = useRef<string | undefined>(undefined);
 
-  // Update tab when query changes - MUST be called unconditionally
+  // Persist tabs to sessionStorage
   useEffect(() => {
-    if (currentQuery !== undefined) {
-      const currentTab = tabs.find((t) => t.id === activeTabId);
-      if (currentTab && currentTab.query !== currentQuery) {
-        updateCurrentTab(currentQuery);
-      }
+    try {
+      sessionStorage.setItem(TABS_STORAGE_KEY, JSON.stringify(tabs));
+    } catch (e) {
+      console.error("Error saving tabs:", e);
     }
-  }, [currentQuery, activeTabId, tabs]);
+  }, [tabs]);
 
-  const addTab = () => {
+  // Persist active tab
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(ACTIVE_TAB_KEY, activeTabId);
+    } catch (e) {
+      console.error("Error saving active tab:", e);
+    }
+  }, [activeTabId]);
+
+  // Update current tab when query changes - only if it actually changed
+  useEffect(() => {
+    if (currentQuery !== undefined && currentQuery !== lastQueryRef.current) {
+      lastQueryRef.current = currentQuery;
+      setTabs(prevTabs => 
+        prevTabs.map(t =>
+          t.id === activeTabId
+            ? {
+                ...t,
+                query: currentQuery,
+                title: currentQuery || "Home",
+                type: currentQuery ? "search" : "home",
+                url: undefined,
+              }
+            : t
+        )
+      );
+    }
+  }, [currentQuery, activeTabId]);
+
+  // Update current tab when URL changes (for webview)
+  useEffect(() => {
+    if (currentUrl !== undefined && currentUrl !== lastUrlRef.current) {
+      lastUrlRef.current = currentUrl;
+      setTabs(prevTabs =>
+        prevTabs.map(t =>
+          t.id === activeTabId
+            ? {
+                ...t,
+                url: currentUrl,
+                title: new URL(currentUrl).hostname,
+                type: "webview",
+                query: undefined,
+              }
+            : t
+        )
+      );
+    }
+  }, [currentUrl, activeTabId]);
+
+  const addTab = useCallback(() => {
     const newTab: Tab = {
       id: Date.now().toString(),
       title: "New Tab",
-      query: "",
       type: "home",
+      query: "",
     };
-    setTabs([...tabs, newTab]);
+    setTabs(prev => [...prev, newTab]);
     setActiveTabId(newTab.id);
+    lastQueryRef.current = "";
+    lastUrlRef.current = undefined;
     onNewTab?.();
-  };
+    onTabChange?.(newTab);
+  }, [onNewTab, onTabChange]);
 
-  const closeTab = (id: string) => {
-    if (tabs.length === 1) return;
-    const newTabs = tabs.filter((t) => t.id !== id);
-    setTabs(newTabs);
-    if (activeTabId === id) {
-      const newActive = newTabs[newTabs.length - 1];
-      setActiveTabId(newActive.id);
-      onTabChange?.(newActive.query);
-    }
-  };
+  const closeTab = useCallback((id: string) => {
+    setTabs(prevTabs => {
+      if (prevTabs.length === 1) return prevTabs;
+      const newTabs = prevTabs.filter(t => t.id !== id);
+      
+      if (activeTabId === id) {
+        const newActive = newTabs[newTabs.length - 1];
+        setActiveTabId(newActive.id);
+        lastQueryRef.current = newActive.query;
+        lastUrlRef.current = newActive.url;
+        onTabChange?.(newActive);
+      }
+      
+      return newTabs;
+    });
+  }, [activeTabId, onTabChange]);
 
-  const selectTab = (tab: Tab) => {
+  const selectTab = useCallback((tab: Tab) => {
     setActiveTabId(tab.id);
-    onTabChange?.(tab.query);
+    lastQueryRef.current = tab.query;
+    lastUrlRef.current = tab.url;
+    onTabChange?.(tab);
     setShowTabs(false);
-  };
+  }, [onTabChange]);
 
-  const updateCurrentTab = (query: string) => {
-    setTabs(
-      tabs.map((t) =>
-        t.id === activeTabId
-          ? {
-              ...t,
-              query,
-              title: query || "Home",
-              type: query ? "search" : "home",
-            }
-          : t
-      )
-    );
-  };
+  // Open URL in current tab as webview
+  const openUrlInTab = useCallback((url: string) => {
+    try {
+      const hostname = new URL(url).hostname;
+      lastUrlRef.current = url;
+      lastQueryRef.current = undefined;
+      setTabs(prevTabs =>
+        prevTabs.map(t =>
+          t.id === activeTabId
+            ? { ...t, url, title: hostname, type: "webview" as const, query: undefined }
+            : t
+        )
+      );
+    } catch (e) {
+      console.error("Invalid URL:", url);
+    }
+  }, [activeTabId]);
 
   // Don't render until PWA state is ready, and only show in standalone mode
-  // CRITICAL: This early return MUST come AFTER all hooks
   if (!isReady || !isStandalone) {
     return null;
   }
+
+  const activeTab = tabs.find(t => t.id === activeTabId);
 
   // Desktop: Chrome-like tabs
   if (!isMobile) {
@@ -107,6 +196,8 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery }: AppTabsProps) => {
             >
               {tab.type === "home" ? (
                 <Home className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              ) : tab.type === "webview" ? (
+                <Globe className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
               ) : (
                 <SearchIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
               )}
@@ -215,6 +306,8 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery }: AppTabsProps) => {
                         <div className="h-8 bg-muted/50 flex items-center px-2 gap-1.5">
                           {tab.type === "home" ? (
                             <Home className="h-3 w-3 text-muted-foreground" />
+                          ) : tab.type === "webview" ? (
+                            <Globe className="h-3 w-3 text-muted-foreground" />
                           ) : (
                             <SearchIcon className="h-3 w-3 text-muted-foreground" />
                           )}
@@ -225,6 +318,8 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery }: AppTabsProps) => {
                         <div className="flex-1 flex items-center justify-center text-muted-foreground/30">
                           {tab.type === "home" ? (
                             <Home className="h-12 w-12" />
+                          ) : tab.type === "webview" ? (
+                            <Globe className="h-12 w-12" />
                           ) : (
                             <SearchIcon className="h-12 w-12" />
                           )}
@@ -258,3 +353,4 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery }: AppTabsProps) => {
 };
 
 export default AppTabs;
+export { getStoredTabs, getStoredActiveTab };
