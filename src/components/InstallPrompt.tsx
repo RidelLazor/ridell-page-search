@@ -13,16 +13,20 @@ const InstallPrompt = () => {
 
   useEffect(() => {
     // Show on both mobile and desktop when installable
-    const hasSeenPrompt = localStorage.getItem("ridel-install-prompt-dismissed");
-    const lastDismissed = hasSeenPrompt ? parseInt(hasSeenPrompt) : 0;
-    const daysSinceDismissed = (Date.now() - lastDismissed) / (1000 * 60 * 60 * 24);
-    
-    // Show again after 3 days
-    if (isInstallable && !isInstalled && !isStandalone && daysSinceDismissed > 3) {
-      const timer = setTimeout(() => {
-        setShowPrompt(true);
-      }, 2000);
-      return () => clearTimeout(timer);
+    try {
+      const hasSeenPrompt = localStorage.getItem("ridel-install-prompt-dismissed");
+      const lastDismissed = hasSeenPrompt ? parseInt(hasSeenPrompt) : 0;
+      const daysSinceDismissed = (Date.now() - lastDismissed) / (1000 * 60 * 60 * 24);
+      
+      // Show again after 3 days
+      if (isInstallable && !isInstalled && !isStandalone && daysSinceDismissed > 3) {
+        const timer = setTimeout(() => {
+          setShowPrompt(true);
+        }, 2000);
+        return () => clearTimeout(timer);
+      }
+    } catch (e) {
+      console.error("Error checking install prompt:", e);
     }
   }, [isInstallable, isInstalled, isStandalone]);
 
@@ -36,9 +40,14 @@ const InstallPrompt = () => {
   const handleDismiss = () => {
     setShowPrompt(false);
     setDismissed(true);
-    localStorage.setItem("ridel-install-prompt-dismissed", Date.now().toString());
+    try {
+      localStorage.setItem("ridel-install-prompt-dismissed", Date.now().toString());
+    } catch (e) {
+      // Ignore localStorage errors
+    }
   };
 
+  // Early return AFTER all hooks have been called
   if (!showPrompt || dismissed) {
     return null;
   }
@@ -108,57 +117,53 @@ const InstallPrompt = () => {
                 
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Layers className="h-5 w-5 text-primary" />
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Layers className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Tab Navigation</p>
-                      <p className="text-xs text-muted-foreground">
-                        {isMobile ? "Switch between searches easily" : "Browser-like tabs for multiple searches"}
-                      </p>
+                      <p className="text-sm font-medium">Tab Management</p>
+                      <p className="text-xs text-muted-foreground">Open multiple searches in tabs</p>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Zap className="h-5 w-5 text-primary" />
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Zap className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Faster Performance</p>
-                      <p className="text-xs text-muted-foreground">Native-like speed and offline support</p>
+                      <p className="text-sm font-medium">Lightning Fast</p>
+                      <p className="text-xs text-muted-foreground">Native app performance</p>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Sparkles className="h-5 w-5 text-primary" />
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Sparkles className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Exclusive Features</p>
-                      <p className="text-xs text-muted-foreground">
-                        {isMobile ? "Quick actions, gestures & more" : "Keyboard shortcuts, quick actions & more"}
-                      </p>
+                      <p className="text-sm font-medium">Offline Ready</p>
+                      <p className="text-xs text-muted-foreground">Works without internet</p>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Buttons */}
-                <div className="flex gap-3 pt-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={handleDismiss}
-                  >
-                    Not Now
-                  </Button>
-                  <Button
-                    className="flex-1 gap-2"
-                    onClick={handleInstall}
-                  >
-                    <Download className="h-4 w-4" />
-                    Install
-                  </Button>
-                </div>
+              {/* Actions */}
+              <div className="p-6 pt-0 flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleDismiss}
+                >
+                  Not Now
+                </Button>
+                <Button
+                  className="flex-1 gap-2"
+                  onClick={handleInstall}
+                >
+                  <Download className="h-4 w-4" />
+                  Install
+                </Button>
               </div>
             </div>
           </motion.div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Home, Search, Layers } from "lucide-react";
+import { Plus, X, Layers, Home, Search as SearchIcon } from "lucide-react";
 import { usePWA } from "@/hooks/usePWA";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -12,8 +12,8 @@ interface Tab {
 }
 
 interface AppTabsProps {
-  onTabChange: (tab: Tab) => void;
-  onNewTab: () => void;
+  onTabChange?: (query: string) => void;
+  onNewTab?: () => void;
   currentQuery?: string;
 }
 
@@ -26,10 +26,15 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery }: AppTabsProps) => {
   const [activeTabId, setActiveTabId] = useState("1");
   const [showTabs, setShowTabs] = useState(false);
 
-  // Don't render until PWA state is ready, and only show in standalone mode
-  if (!isReady || !isStandalone) {
-    return null;
-  }
+  // Update tab when query changes - MUST be called unconditionally
+  useEffect(() => {
+    if (currentQuery !== undefined) {
+      const currentTab = tabs.find((t) => t.id === activeTabId);
+      if (currentTab && currentTab.query !== currentQuery) {
+        updateCurrentTab(currentQuery);
+      }
+    }
+  }, [currentQuery, activeTabId, tabs]);
 
   const addTab = () => {
     const newTab: Tab = {
@@ -40,221 +45,212 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery }: AppTabsProps) => {
     };
     setTabs([...tabs, newTab]);
     setActiveTabId(newTab.id);
-    onNewTab();
+    onNewTab?.();
   };
 
-  const closeTab = (id: string, e?: React.MouseEvent) => {
-    e?.stopPropagation();
+  const closeTab = (id: string) => {
     if (tabs.length === 1) return;
-    
     const newTabs = tabs.filter((t) => t.id !== id);
     setTabs(newTabs);
-    
     if (activeTabId === id) {
-      const lastTab = newTabs[newTabs.length - 1];
-      setActiveTabId(lastTab.id);
-      onTabChange(lastTab);
+      const newActive = newTabs[newTabs.length - 1];
+      setActiveTabId(newActive.id);
+      onTabChange?.(newActive.query);
     }
   };
 
   const selectTab = (tab: Tab) => {
     setActiveTabId(tab.id);
-    onTabChange(tab);
+    onTabChange?.(tab.query);
     setShowTabs(false);
   };
 
   const updateCurrentTab = (query: string) => {
-    setTabs(tabs.map((t) => 
-      t.id === activeTabId 
-        ? { ...t, query, title: query || "Home", type: query ? "search" : "home" }
-        : t
-    ));
+    setTabs(
+      tabs.map((t) =>
+        t.id === activeTabId
+          ? {
+              ...t,
+              query,
+              title: query || "Home",
+              type: query ? "search" : "home",
+            }
+          : t
+      )
+    );
   };
 
-  // Update tab when query changes
-  useEffect(() => {
-    if (currentQuery !== undefined) {
-      const currentTab = tabs.find((t) => t.id === activeTabId);
-      if (currentTab && currentTab.query !== currentQuery) {
-        updateCurrentTab(currentQuery);
-      }
-    }
-  }, [currentQuery, activeTabId]);
+  // Don't render until PWA state is ready, and only show in standalone mode
+  // CRITICAL: This early return MUST come AFTER all hooks
+  if (!isReady || !isStandalone) {
+    return null;
+  }
 
-  // Desktop: Browser-style tab bar at the top
+  // Desktop: Chrome-like tabs
   if (!isMobile) {
     return (
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
-        <div className="flex items-center h-10">
-          {/* Tabs */}
-          <div className="flex-1 flex items-center overflow-x-auto scrollbar-hide">
-            {tabs.map((tab) => (
-              <motion.div
-                key={tab.id}
-                layoutId={`tab-${tab.id}`}
-                onClick={() => selectTab(tab)}
-                className={`group relative flex items-center gap-2 px-4 h-10 min-w-[140px] max-w-[200px] cursor-pointer border-r border-border ${
-                  activeTabId === tab.id
-                    ? "bg-card"
-                    : "bg-muted/50 hover:bg-muted"
-                }`}
-                whileHover={{ backgroundColor: activeTabId === tab.id ? undefined : "hsl(var(--muted))" }}
-              >
-                {/* Active indicator */}
-                {activeTabId === tab.id && (
-                  <motion.div
-                    layoutId="activeTabIndicator"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                  />
-                )}
-                
-                {/* Icon */}
-                <div className="flex-shrink-0">
-                  {tab.type === "home" ? (
-                    <Home className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Search className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </div>
-                
-                {/* Title */}
-                <span className="flex-1 text-sm truncate">
-                  {tab.title}
-                </span>
-                
-                {/* Close button */}
-                {tabs.length > 1 && (
-                  <motion.button
-                    onClick={(e) => closeTab(tab.id, e)}
-                    className="flex-shrink-0 p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-secondary transition-opacity"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <X className="h-3 w-3" />
-                  </motion.button>
-                )}
-              </motion.div>
-            ))}
-          </div>
-          
-          {/* New Tab Button */}
-          <motion.button
-            onClick={addTab}
-            className="flex-shrink-0 p-2 hover:bg-muted rounded-md mx-1"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            title="New Tab (Ctrl+T)"
-          >
-            <Plus className="h-4 w-4" />
-          </motion.button>
-        </div>
+      <div className="fixed top-0 left-0 right-0 h-10 bg-background/95 backdrop-blur-sm border-b border-border z-50 flex items-center px-2 gap-1">
+        <AnimatePresence mode="popLayout">
+          {tabs.map((tab) => (
+            <motion.div
+              key={tab.id}
+              layout
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className={`relative flex items-center gap-2 px-3 py-1.5 rounded-t-lg cursor-pointer transition-colors max-w-[200px] min-w-[120px] ${
+                activeTabId === tab.id
+                  ? "bg-card border border-b-0 border-border"
+                  : "hover:bg-muted/50"
+              }`}
+              onClick={() => selectTab(tab)}
+            >
+              {tab.type === "home" ? (
+                <Home className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              ) : (
+                <SearchIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              )}
+              <span className="text-sm truncate flex-1">{tab.title}</span>
+              {tabs.length > 1 && (
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeTab(tab.id);
+                  }}
+                  className="p-0.5 rounded hover:bg-muted"
+                >
+                  <X className="h-3 w-3 text-muted-foreground" />
+                </motion.button>
+              )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={addTab}
+          className="p-1.5 rounded hover:bg-muted ml-1"
+        >
+          <Plus className="h-4 w-4 text-muted-foreground" />
+        </motion.button>
       </div>
     );
   }
 
-  // Mobile: Floating button + fullscreen grid
+  // Mobile: Tab counter + fullscreen tab switcher
   return (
     <>
-      {/* Tab Counter Button */}
+      {/* Floating tab counter button */}
       <motion.button
-        onClick={() => setShowTabs(true)}
-        className="fixed bottom-20 right-4 z-40 w-12 h-12 rounded-xl bg-primary text-primary-foreground shadow-lg flex items-center justify-center"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
+        onClick={() => setShowTabs(true)}
+        className="fixed bottom-20 right-4 z-40 w-10 h-10 rounded-xl bg-primary text-primary-foreground shadow-lg flex items-center justify-center"
       >
-        <span className="text-lg font-bold">{tabs.length}</span>
+        <div className="relative">
+          <Layers className="h-5 w-5" />
+          <span className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-accent text-[10px] font-bold flex items-center justify-center">
+            {tabs.length}
+          </span>
+        </div>
       </motion.button>
 
-      {/* Tab Switcher Modal */}
+      {/* Fullscreen tab view */}
       <AnimatePresence>
         {showTabs && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/80 backdrop-blur-md z-50"
-              onClick={() => setShowTabs(false)}
-            />
-            
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 50 }}
-              className="fixed inset-4 z-50 flex flex-col"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between p-4">
-                <h2 className="text-xl font-bold text-white">{tabs.length} Tabs</h2>
-                <div className="flex gap-2">
-                  <motion.button
-                    onClick={addTab}
-                    className="p-3 rounded-full bg-white/10 text-white"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <Plus className="h-5 w-5" />
-                  </motion.button>
-                  <motion.button
-                    onClick={() => setShowTabs(false)}
-                    className="p-3 rounded-full bg-white/10 text-white"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <X className="h-5 w-5" />
-                  </motion.button>
-                </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-background z-50 flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="text-lg font-semibold">
+                {tabs.length} {tabs.length === 1 ? "Tab" : "Tabs"}
+              </h2>
+              <div className="flex items-center gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={addTab}
+                  className="p-2 rounded-full hover:bg-muted"
+                >
+                  <Plus className="h-5 w-5" />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowTabs(false)}
+                  className="p-2 rounded-full hover:bg-muted"
+                >
+                  <X className="h-5 w-5" />
+                </motion.button>
               </div>
+            </div>
 
-              {/* Tab Grid */}
-              <div className="flex-1 overflow-auto p-4">
-                <div className="grid grid-cols-2 gap-4">
+            {/* Tab grid */}
+            <div className="flex-1 overflow-auto p-4">
+              <div className="grid grid-cols-2 gap-3">
+                <AnimatePresence mode="popLayout">
                   {tabs.map((tab) => (
                     <motion.div
                       key={tab.id}
-                      layoutId={tab.id}
-                      onClick={() => selectTab(tab)}
-                      className={`relative aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer border-2 ${
+                      layout
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      className={`relative aspect-[3/4] rounded-xl overflow-hidden cursor-pointer transition-all ${
                         activeTabId === tab.id
-                          ? "border-primary"
-                          : "border-transparent"
+                          ? "ring-2 ring-primary"
+                          : "ring-1 ring-border"
                       }`}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      onClick={() => selectTab(tab)}
                     >
-                      {/* Tab Preview */}
-                      <div className="absolute inset-0 bg-card">
-                        <div className="h-full flex flex-col items-center justify-center gap-2 p-4">
-                          <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
-                            {tab.type === "home" ? (
-                              <Home className="h-6 w-6 text-muted-foreground" />
-                            ) : (
-                              <Search className="h-6 w-6 text-muted-foreground" />
-                            )}
-                          </div>
-                          <p className="text-sm font-medium text-center line-clamp-2">
+                      {/* Tab preview */}
+                      <div className="absolute inset-0 bg-card flex flex-col">
+                        <div className="h-8 bg-muted/50 flex items-center px-2 gap-1.5">
+                          {tab.type === "home" ? (
+                            <Home className="h-3 w-3 text-muted-foreground" />
+                          ) : (
+                            <SearchIcon className="h-3 w-3 text-muted-foreground" />
+                          )}
+                          <span className="text-[10px] truncate flex-1">
                             {tab.title}
-                          </p>
+                          </span>
+                        </div>
+                        <div className="flex-1 flex items-center justify-center text-muted-foreground/30">
+                          {tab.type === "home" ? (
+                            <Home className="h-12 w-12" />
+                          ) : (
+                            <SearchIcon className="h-12 w-12" />
+                          )}
                         </div>
                       </div>
 
-                      {/* Close Button */}
+                      {/* Close button */}
                       {tabs.length > 1 && (
                         <motion.button
-                          onClick={(e) => closeTab(tab.id, e)}
-                          className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-white"
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            closeTab(tab.id);
+                          }}
+                          className="absolute top-1 right-1 p-1.5 rounded-full bg-background/80 backdrop-blur-sm"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-3.5 w-3.5" />
                         </motion.button>
                       )}
                     </motion.div>
                   ))}
-                </div>
+                </AnimatePresence>
               </div>
-            </motion.div>
-          </>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
