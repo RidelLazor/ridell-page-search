@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Play, RotateCcw, Moon, Sun, Keyboard, Zap } from "lucide-react";
+import { Download, Play, RotateCcw, Moon, Sun, Keyboard, Zap, Grid3X3, User, Bookmark, Star, Globe, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const SCENE_DURATIONS = [2000, 2500, 2500, 2500, 2500, 2500, 2000];
+const SCENE_DURATIONS = [2000, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2000];
 const TOTAL_DURATION = SCENE_DURATIONS.reduce((a, b) => a + b, 0);
 
 const Trailer = () => {
@@ -129,40 +129,16 @@ const Trailer = () => {
           className="relative aspect-video bg-gradient-to-br from-black via-zinc-900 to-black rounded-xl overflow-hidden shadow-2xl border border-zinc-800"
         >
           <AnimatePresence mode="wait">
-            {/* Scene 0: Logo Intro */}
-            {currentScene === 0 && (
-              <Scene0 key="scene0" />
-            )}
-
-            {/* Scene 1: Search Bar Animation */}
-            {currentScene === 1 && (
-              <Scene1 key="scene1" />
-            )}
-
-            {/* Scene 2: AI Features */}
-            {currentScene === 2 && (
-              <Scene2 key="scene2" />
-            )}
-
-            {/* Scene 3: Dark Mode */}
-            {currentScene === 3 && (
-              <Scene3 key="scene3" />
-            )}
-
-            {/* Scene 4: Keyboard Shortcuts */}
-            {currentScene === 4 && (
-              <Scene4 key="scene4" />
-            )}
-
-            {/* Scene 5: Speed Demo */}
-            {currentScene === 5 && (
-              <Scene5 key="scene5" />
-            )}
-
-            {/* Scene 6: Final CTA */}
-            {currentScene === 6 && (
-              <Scene6 key="scene6" />
-            )}
+            {currentScene === 0 && <Scene0 key="scene0" />}
+            {currentScene === 1 && <Scene1 key="scene1" />}
+            {currentScene === 2 && <Scene2 key="scene2" />}
+            {currentScene === 3 && <SceneQuickShortcuts key="scene3" />}
+            {currentScene === 4 && <SceneGoogleApps key="scene4" />}
+            {currentScene === 5 && <SceneAccountLogin key="scene5" />}
+            {currentScene === 6 && <SceneBookmarks key="scene6" />}
+            {currentScene === 7 && <Scene3 key="scene7" />}
+            {currentScene === 8 && <Scene5 key="scene8" />}
+            {currentScene === 9 && <Scene6 key="scene9" />}
 
             {/* Static state when not playing */}
             {currentScene === -1 && !isPlaying && (
@@ -251,7 +227,6 @@ const Scene0 = () => (
         <span className="text-4xl font-bold text-white tracking-wider">RIDEL</span>
       </motion.div>
     </div>
-    {/* Particles */}
     {[...Array(20)].map((_, i) => (
       <motion.div
         key={i}
@@ -377,6 +352,310 @@ const Scene2 = () => (
   </motion.div>
 );
 
+// Scene: Quick Shortcuts
+const SceneQuickShortcuts = () => {
+  const shortcuts = [
+    { name: "YouTube", color: "from-red-500 to-red-600", icon: "▶" },
+    { name: "GitHub", color: "from-gray-600 to-gray-800", icon: "◉" },
+    { name: "Twitter", color: "from-blue-400 to-blue-500", icon: "𝕏" },
+    { name: "Reddit", color: "from-orange-500 to-orange-600", icon: "◎" },
+    { name: "Gmail", color: "from-red-400 to-yellow-500", icon: "✉" },
+    { name: "Drive", color: "from-green-500 to-blue-500", icon: "△" },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 flex items-center justify-center"
+    >
+      <div className="text-center">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring" }}
+          className="mb-6"
+        >
+          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center">
+            <ExternalLink className="h-10 w-10 text-white" />
+          </div>
+        </motion.div>
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-3xl font-bold text-white mb-6"
+        >
+          Quick Shortcuts
+        </motion.h2>
+        <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
+          {shortcuts.map((shortcut, i) => (
+            <motion.div
+              key={shortcut.name}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 + i * 0.1, type: "spring" }}
+              whileHover={{ scale: 1.1 }}
+              className="flex flex-col items-center"
+            >
+              <div className={`w-14 h-14 bg-gradient-to-br ${shortcut.color} rounded-xl flex items-center justify-center mb-2 shadow-lg`}>
+                <span className="text-white text-xl">{shortcut.icon}</span>
+              </div>
+              <span className="text-zinc-400 text-xs">{shortcut.name}</span>
+            </motion.div>
+          ))}
+        </div>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="text-zinc-500 mt-6 text-sm"
+        >
+          One-click access to your favorites
+        </motion.p>
+      </div>
+    </motion.div>
+  );
+};
+
+// Scene: Google Apps Grid
+const SceneGoogleApps = () => {
+  const apps = [
+    { name: "Search", color: "bg-blue-500" },
+    { name: "Gmail", color: "bg-red-500" },
+    { name: "Drive", color: "bg-yellow-500" },
+    { name: "Maps", color: "bg-green-500" },
+    { name: "YouTube", color: "bg-red-600" },
+    { name: "Photos", color: "bg-amber-500" },
+    { name: "Docs", color: "bg-blue-600" },
+    { name: "Meet", color: "bg-green-600" },
+    { name: "Calendar", color: "bg-blue-400" },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 flex items-center justify-center"
+    >
+      <div className="text-center">
+        <motion.div
+          initial={{ scale: 0, rotate: -90 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", duration: 0.8 }}
+          className="mb-6"
+        >
+          <div className="w-20 h-20 mx-auto bg-zinc-800 rounded-2xl flex items-center justify-center border border-zinc-700">
+            <Grid3X3 className="h-10 w-10 text-white" />
+          </div>
+        </motion.div>
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-3xl font-bold text-white mb-6"
+        >
+          Google Apps Integration
+        </motion.h2>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5 }}
+          className="bg-zinc-800/80 border border-zinc-700 rounded-2xl p-4 inline-block"
+        >
+          <div className="grid grid-cols-3 gap-3">
+            {apps.map((app, i) => (
+              <motion.div
+                key={app.name}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 + i * 0.05 }}
+                className="flex flex-col items-center p-2"
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ delay: 1 + i * 0.1, duration: 0.3 }}
+                  className={`w-10 h-10 ${app.color} rounded-lg mb-1 shadow-lg`}
+                />
+                <span className="text-zinc-400 text-xs">{app.name}</span>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="text-zinc-500 mt-4 text-sm"
+        >
+          All your Google apps in one place
+        </motion.p>
+      </div>
+    </motion.div>
+  );
+};
+
+// Scene: Account Login
+const SceneAccountLogin = () => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="absolute inset-0 flex items-center justify-center"
+  >
+    <div className="text-center">
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ type: "spring" }}
+        className="mb-6"
+      >
+        <div className="w-20 h-20 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+          <User className="h-10 w-10 text-white" />
+        </div>
+      </motion.div>
+      <motion.h2
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="text-3xl font-bold text-white mb-6"
+      >
+        Personalized Experience
+      </motion.h2>
+      
+      {/* Login Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="bg-zinc-800/80 border border-zinc-700 rounded-2xl p-6 max-w-xs mx-auto"
+      >
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="space-y-4"
+        >
+          <div className="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4">
+            <span className="text-2xl font-bold text-white">JD</span>
+          </div>
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 0.9 }}
+            className="h-10 bg-zinc-700 rounded-lg"
+          />
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 1 }}
+            className="h-10 bg-zinc-700 rounded-lg"
+          />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2 }}
+            className="h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center"
+          >
+            <span className="text-white font-medium">Sign In</span>
+          </motion.div>
+        </motion.div>
+      </motion.div>
+      
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5 }}
+        className="text-zinc-500 mt-4 text-sm"
+      >
+        Sync your preferences across devices
+      </motion.p>
+    </div>
+  </motion.div>
+);
+
+// Scene: Bookmarks
+const SceneBookmarks = () => {
+  const bookmarks = [
+    { title: "React Documentation", url: "react.dev", icon: "⚛️" },
+    { title: "Stack Overflow", url: "stackoverflow.com", icon: "📚" },
+    { title: "GitHub Trending", url: "github.com/trending", icon: "🔥" },
+    { title: "MDN Web Docs", url: "developer.mozilla.org", icon: "📖" },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 flex items-center justify-center"
+    >
+      <div className="text-center w-full max-w-lg px-8">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring" }}
+          className="mb-6 flex justify-center gap-4"
+        >
+          <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center">
+            <Bookmark className="h-8 w-8 text-white" />
+          </div>
+          <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center">
+            <Star className="h-8 w-8 text-white" />
+          </div>
+        </motion.div>
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-3xl font-bold text-white mb-6"
+        >
+          Bookmarks & Favorites
+        </motion.h2>
+        
+        <div className="space-y-3">
+          {bookmarks.map((bookmark, i) => (
+            <motion.div
+              key={bookmark.title}
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 + i * 0.15 }}
+              className="bg-zinc-800/80 border border-zinc-700 rounded-xl p-3 flex items-center gap-3"
+            >
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ delay: 1 + i * 0.2, duration: 0.5 }}
+                className="w-10 h-10 bg-zinc-700 rounded-lg flex items-center justify-center text-xl"
+              >
+                {bookmark.icon}
+              </motion.div>
+              <div className="text-left flex-1">
+                <div className="text-white font-medium">{bookmark.title}</div>
+                <div className="text-zinc-500 text-sm flex items-center gap-1">
+                  <Globe className="h-3 w-3" />
+                  {bookmark.url}
+                </div>
+              </div>
+              <Star className="h-5 w-5 text-yellow-500" />
+            </motion.div>
+          ))}
+        </div>
+        
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="text-zinc-500 mt-4 text-sm"
+        >
+          Save and organize your favorite sites
+        </motion.p>
+      </div>
+    </motion.div>
+  );
+};
+
 // Scene 3: Dark Mode Toggle
 const Scene3 = () => (
   <motion.div
@@ -394,7 +673,6 @@ const Scene3 = () => (
         Beautiful in Any Light
       </motion.h2>
       <div className="flex items-center justify-center gap-8">
-        {/* Light Mode Preview */}
         <motion.div
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -416,7 +694,6 @@ const Scene3 = () => (
           </motion.div>
         </motion.div>
 
-        {/* Toggle Animation */}
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: [0, 1.2, 1] }}
@@ -430,7 +707,6 @@ const Scene3 = () => (
           />
         </motion.div>
 
-        {/* Dark Mode Preview */}
         <motion.div
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -464,74 +740,6 @@ const Scene3 = () => (
   </motion.div>
 );
 
-// Scene 4: Keyboard Shortcuts
-const Scene4 = () => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="absolute inset-0 flex items-center justify-center"
-  >
-    <div className="text-center">
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: "spring" }}
-        className="mb-6"
-      >
-        <div className="w-20 h-20 mx-auto bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center">
-          <Keyboard className="h-10 w-10 text-white" />
-        </div>
-      </motion.div>
-      <motion.h2
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="text-3xl font-bold text-white mb-6"
-      >
-        Keyboard Shortcuts
-      </motion.h2>
-      <div className="flex flex-wrap justify-center gap-4">
-        {[
-          { keys: ["⌘", "K"], label: "Quick Search" },
-          { keys: ["⌘", "⇧", "N"], label: "New Tab" },
-          { keys: ["⌘", "/"], label: "Help" },
-        ].map((shortcut, i) => (
-          <motion.div
-            key={shortcut.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 + i * 0.2 }}
-            className="bg-zinc-800/80 border border-zinc-700 rounded-lg p-4"
-          >
-            <div className="flex gap-1 mb-2 justify-center">
-              {shortcut.keys.map((key, j) => (
-                <motion.span
-                  key={j}
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ delay: 1 + i * 0.3 + j * 0.1, duration: 0.3 }}
-                  className="px-2 py-1 bg-zinc-700 rounded text-white text-sm font-mono"
-                >
-                  {key}
-                </motion.span>
-              ))}
-            </div>
-            <span className="text-zinc-400 text-sm">{shortcut.label}</span>
-          </motion.div>
-        ))}
-      </div>
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-        className="text-zinc-500 mt-6"
-      >
-        Navigate faster than ever
-      </motion.p>
-    </div>
-  </motion.div>
-);
-
 // Scene 5: Speed Demo
 const Scene5 = () => (
   <motion.div
@@ -540,7 +748,6 @@ const Scene5 = () => (
     exit={{ opacity: 0 }}
     className="absolute inset-0 flex items-center justify-center overflow-hidden"
   >
-    {/* Speed lines */}
     {[...Array(30)].map((_, i) => (
       <motion.div
         key={i}
