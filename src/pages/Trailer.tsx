@@ -4,7 +4,7 @@ import { Download, Play, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Trailer = () => {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [currentScene, setCurrentScene] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
