@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Play, RotateCcw, Moon, Sun, Keyboard, Zap, Grid3X3, User, Bookmark, Star, Globe, ExternalLink } from "lucide-react";
+import { Download, Play, RotateCcw, Moon, Sun, Keyboard, Zap, Grid3X3, User, Bookmark, Star, Globe, ExternalLink, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 const SCENE_DURATIONS = [2000, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2000];
 const TOTAL_DURATION = SCENE_DURATIONS.reduce((a, b) => a + b, 0);
@@ -11,11 +12,15 @@ const Trailer = () => {
   const [currentScene, setCurrentScene] = useState(-1);
   const [progress, setProgress] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isLoadingMusic, setIsLoadingMusic] = useState(false);
+  const [musicLoaded, setMusicLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number>(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const getSceneForTime = useCallback((elapsed: number) => {
     let accumulated = 0;
@@ -42,6 +47,10 @@ const Trailer = () => {
       setIsPlaying(false);
       setCurrentScene(-1);
       setProgress(0);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
       if (isRecording) {
         stopRecording();
       }
@@ -52,13 +61,59 @@ const Trailer = () => {
     if (isPlaying) {
       startTimeRef.current = Date.now();
       animationFrameRef.current = requestAnimationFrame(animate);
+      // Play music if loaded and not muted
+      if (audioRef.current && musicLoaded && !isMuted) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(console.error);
+      }
     }
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlaying, animate]);
+  }, [isPlaying, animate, musicLoaded, isMuted]);
+
+  // Load background music
+  const loadMusic = async () => {
+    if (musicLoaded || isLoadingMusic) return;
+    
+    setIsLoadingMusic(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trailer-music`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            prompt: "Epic cinematic trailer music, modern tech product reveal, inspiring and powerful, electronic orchestral hybrid, building tension with triumphant finale",
+            duration: 25,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to generate music");
+      }
+
+      const data = await response.json();
+      const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
+      audioRef.current = new Audio(audioUrl);
+      audioRef.current.loop = false;
+      audioRef.current.volume = 0.5;
+      setMusicLoaded(true);
+      toast.success("Background music loaded!");
+    } catch (error) {
+      console.error("Error loading music:", error);
+      toast.error("Could not load background music. Playing without music.");
+    } finally {
+      setIsLoadingMusic(false);
+    }
+  };
 
   // Auto-play on mount
   useEffect(() => {
@@ -74,9 +129,28 @@ const Trailer = () => {
     setIsPlaying(true);
   };
 
+  const enterFullscreen = async () => {
+    if (containerRef.current) {
+      try {
+        if (containerRef.current.requestFullscreen) {
+          await containerRef.current.requestFullscreen();
+        } else if ((containerRef.current as any).webkitRequestFullscreen) {
+          await (containerRef.current as any).webkitRequestFullscreen();
+        } else if ((containerRef.current as any).msRequestFullscreen) {
+          await (containerRef.current as any).msRequestFullscreen();
+        }
+      } catch (error) {
+        console.error("Fullscreen error:", error);
+      }
+    }
+  };
+
   const startRecording = async () => {
     setIsRecording(true);
     chunksRef.current = [];
+
+    // Enter fullscreen first
+    await enterFullscreen();
 
     try {
       const stream = await (navigator.mediaDevices as any).getDisplayMedia({
@@ -104,6 +178,10 @@ const Trailer = () => {
         URL.revokeObjectURL(url);
         setIsRecording(false);
         stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+        // Exit fullscreen
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(console.error);
+        }
       };
 
       mediaRecorderRef.current.start();
@@ -117,6 +195,13 @@ const Trailer = () => {
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
+    }
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    if (audioRef.current) {
+      audioRef.current.muted = !isMuted;
     }
   };
 
@@ -158,6 +243,20 @@ const Trailer = () => {
             )}
           </AnimatePresence>
 
+          {/* Mute button */}
+          {isPlaying && musicLoaded && (
+            <button
+              onClick={toggleMute}
+              className="absolute top-4 right-4 z-10 p-2 bg-zinc-800/80 rounded-full hover:bg-zinc-700/80 transition-colors"
+            >
+              {isMuted ? (
+                <VolumeX className="h-5 w-5 text-white" />
+              ) : (
+                <Volume2 className="h-5 w-5 text-white" />
+              )}
+            </button>
+          )}
+
           {/* Progress bar */}
           {isPlaying && (
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800">
@@ -170,7 +269,7 @@ const Trailer = () => {
         </div>
 
         {/* Controls */}
-        <div className="flex justify-center gap-4">
+        <div className="flex justify-center gap-4 flex-wrap">
           <Button
             onClick={startTrailer}
             disabled={isPlaying}
@@ -180,6 +279,23 @@ const Trailer = () => {
           >
             {isPlaying ? <RotateCcw className="h-5 w-5 animate-spin" /> : <Play className="h-5 w-5" />}
             {isPlaying ? "Playing..." : "Play Trailer"}
+          </Button>
+
+          <Button
+            onClick={loadMusic}
+            disabled={musicLoaded || isLoadingMusic}
+            variant="outline"
+            size="lg"
+            className="gap-2"
+          >
+            {isLoadingMusic ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : musicLoaded ? (
+              <Volume2 className="h-5 w-5" />
+            ) : (
+              <Volume2 className="h-5 w-5" />
+            )}
+            {isLoadingMusic ? "Loading..." : musicLoaded ? "Music Ready" : "Load Music"}
           </Button>
           
           <Button
@@ -194,7 +310,7 @@ const Trailer = () => {
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
-          Click "Record & Download" to capture the trailer as a video file
+          Load music first for the best experience, then record in fullscreen
         </p>
       </div>
     </div>
@@ -525,7 +641,6 @@ const SceneAccountLogin = () => (
         Personalized Experience
       </motion.h2>
       
-      {/* Login Card */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
