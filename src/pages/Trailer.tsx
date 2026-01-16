@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Play, RotateCcw, Moon, Sun, Keyboard, Zap, Grid3X3, User, Bookmark, Star, Globe, ExternalLink, Volume2, VolumeX, Loader2 } from "lucide-react";
+import { Download, Play, RotateCcw, Moon, Sun, Keyboard, Zap, Grid3X3, User, Bookmark, Star, Globe, ExternalLink, Volume2, VolumeX, Loader2, Search, ArrowRight, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
-const SCENE_DURATIONS = [2000, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2000];
+const SCENE_DURATIONS = [2000, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2000];
 const TOTAL_DURATION = SCENE_DURATIONS.reduce((a, b) => a + b, 0);
 
 const Trailer = () => {
@@ -15,6 +15,8 @@ const Trailer = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isLoadingMusic, setIsLoadingMusic] = useState(false);
   const [musicLoaded, setMusicLoaded] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showControls, setShowControls] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -54,6 +56,11 @@ const Trailer = () => {
       if (isRecording) {
         stopRecording();
       }
+      // Exit fullscreen when done
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(console.error);
+      }
+      setShowControls(true);
     }
   }, [getSceneForTime, isRecording]);
 
@@ -74,60 +81,60 @@ const Trailer = () => {
     };
   }, [isPlaying, animate, musicLoaded, isMuted]);
 
-  // Load background music
-  const loadMusic = async () => {
-    if (musicLoaded || isLoadingMusic) return;
-    
-    setIsLoadingMusic(true);
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trailer-music`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            prompt: "Epic cinematic trailer music, modern tech product reveal, inspiring and powerful, electronic orchestral hybrid, building tension with triumphant finale",
-            duration: 25,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to generate music");
-      }
-
-      const data = await response.json();
-      const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
-      audioRef.current = new Audio(audioUrl);
-      audioRef.current.loop = false;
-      audioRef.current.volume = 0.5;
-      setMusicLoaded(true);
-      toast.success("Background music loaded!");
-    } catch (error) {
-      console.error("Error loading music:", error);
-      toast.error("Could not load background music. Playing without music.");
-    } finally {
-      setIsLoadingMusic(false);
-    }
-  };
-
-  // Auto-play on mount
+  // Auto-load background music on mount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsPlaying(true);
-    }, 500);
-    return () => clearTimeout(timer);
+    const loadMusicOnMount = async () => {
+      if (musicLoaded || isLoadingMusic) return;
+      
+      setIsLoadingMusic(true);
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/trailer-music`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({
+              prompt: "Epic cinematic trailer music, modern tech product reveal, inspiring and powerful, electronic orchestral hybrid, building tension with triumphant finale",
+              duration: 30,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to generate music");
+        }
+
+        const data = await response.json();
+        const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
+        audioRef.current = new Audio(audioUrl);
+        audioRef.current.loop = false;
+        audioRef.current.volume = 0.5;
+        setMusicLoaded(true);
+        toast.success("Background music loaded!");
+      } catch (error) {
+        console.error("Error loading music:", error);
+        // Silently fail - don't show error toast on auto-load
+      } finally {
+        setIsLoadingMusic(false);
+      }
+    };
+
+    loadMusicOnMount();
   }, []);
 
-  const startTrailer = () => {
-    setCurrentScene(-1);
-    setProgress(0);
-    setIsPlaying(true);
-  };
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const enterFullscreen = async () => {
     if (containerRef.current) {
@@ -145,9 +152,21 @@ const Trailer = () => {
     }
   };
 
+  const startTrailer = async () => {
+    setShowControls(false);
+    await enterFullscreen();
+    setCurrentScene(-1);
+    setProgress(0);
+    // Small delay to ensure fullscreen is applied
+    setTimeout(() => {
+      setIsPlaying(true);
+    }, 100);
+  };
+
   const startRecording = async () => {
     setIsRecording(true);
     chunksRef.current = [];
+    setShowControls(false);
 
     // Enter fullscreen first
     await enterFullscreen();
@@ -182,13 +201,18 @@ const Trailer = () => {
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(console.error);
         }
+        setShowControls(true);
       };
 
       mediaRecorderRef.current.start();
-      startTrailer();
+      setCurrentScene(-1);
+      setProgress(0);
+      setTimeout(() => {
+        setIsPlaying(true);
+      }, 100);
     } catch {
       setIsRecording(false);
-      startTrailer();
+      setShowControls(true);
     }
   };
 
@@ -206,12 +230,17 @@ const Trailer = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-5xl space-y-6">
+    <div 
+      ref={containerRef}
+      className="min-h-screen bg-black flex flex-col items-center justify-center"
+    >
+      {/* Fullscreen trailer view */}
+      <div className={`w-full h-full ${isFullscreen ? 'fixed inset-0' : 'max-w-5xl p-4 space-y-6'}`}>
         {/* Trailer Container */}
         <div 
-          ref={containerRef}
-          className="relative aspect-video bg-gradient-to-br from-black via-zinc-900 to-black rounded-xl overflow-hidden shadow-2xl border border-zinc-800"
+          className={`relative bg-gradient-to-br from-black via-zinc-900 to-black overflow-hidden ${
+            isFullscreen ? 'w-full h-full' : 'aspect-video rounded-xl shadow-2xl border border-zinc-800'
+          }`}
         >
           <AnimatePresence mode="wait">
             {currentScene === 0 && <Scene0 key="scene0" />}
@@ -219,14 +248,15 @@ const Trailer = () => {
             {currentScene === 2 && <Scene2 key="scene2" />}
             {currentScene === 3 && <SceneQuickShortcuts key="scene3" />}
             {currentScene === 4 && <SceneGoogleApps key="scene4" />}
-            {currentScene === 5 && <SceneAccountLogin key="scene5" />}
-            {currentScene === 6 && <SceneBookmarks key="scene6" />}
-            {currentScene === 7 && <Scene3 key="scene7" />}
-            {currentScene === 8 && <Scene5 key="scene8" />}
-            {currentScene === 9 && <Scene6 key="scene9" />}
+            {currentScene === 5 && <SceneSearchDemo key="scene5" />}
+            {currentScene === 6 && <SceneAccountLogin key="scene6" />}
+            {currentScene === 7 && <SceneBookmarks key="scene7" />}
+            {currentScene === 8 && <Scene3 key="scene8" />}
+            {currentScene === 9 && <Scene5 key="scene9" />}
+            {currentScene === 10 && <Scene6 key="scene10" />}
 
             {/* Static state when not playing */}
-            {currentScene === -1 && !isPlaying && (
+            {currentScene === -1 && !isPlaying && showControls && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -237,13 +267,25 @@ const Trailer = () => {
                     <span className="text-5xl font-bold text-white">R</span>
                   </div>
                   <h1 className="text-4xl font-bold text-white mb-2">RIDEL</h1>
-                  <p className="text-zinc-400">Click Play to watch the trailer</p>
+                  <p className="text-zinc-400 mb-2">Click Play to watch the trailer</p>
+                  {isLoadingMusic && (
+                    <div className="flex items-center justify-center gap-2 text-zinc-500 text-sm">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading music...
+                    </div>
+                  )}
+                  {musicLoaded && (
+                    <div className="flex items-center justify-center gap-2 text-green-500 text-sm">
+                      <Volume2 className="h-4 w-4" />
+                      Music ready
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Mute button */}
+          {/* Mute button - only show during playback */}
           {isPlaying && musicLoaded && (
             <button
               onClick={toggleMute}
@@ -257,9 +299,9 @@ const Trailer = () => {
             </button>
           )}
 
-          {/* Progress bar */}
+          {/* Progress bar - slim and at very bottom */}
           {isPlaying && (
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800">
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800/50">
               <motion.div
                 style={{ width: `${progress * 100}%` }}
                 className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
@@ -268,50 +310,37 @@ const Trailer = () => {
           )}
         </div>
 
-        {/* Controls */}
-        <div className="flex justify-center gap-4 flex-wrap">
-          <Button
-            onClick={startTrailer}
-            disabled={isPlaying}
-            variant="outline"
-            size="lg"
-            className="gap-2"
-          >
-            {isPlaying ? <RotateCcw className="h-5 w-5 animate-spin" /> : <Play className="h-5 w-5" />}
-            {isPlaying ? "Playing..." : "Play Trailer"}
-          </Button>
+        {/* Controls - only show when not in fullscreen/playing */}
+        {showControls && !isFullscreen && (
+          <div className="flex justify-center gap-4 flex-wrap">
+            <Button
+              onClick={startTrailer}
+              disabled={isPlaying}
+              variant="outline"
+              size="lg"
+              className="gap-2"
+            >
+              {isPlaying ? <RotateCcw className="h-5 w-5 animate-spin" /> : <Play className="h-5 w-5" />}
+              {isPlaying ? "Playing..." : "Play Fullscreen"}
+            </Button>
+            
+            <Button
+              onClick={startRecording}
+              disabled={isPlaying || isRecording}
+              size="lg"
+              className="gap-2"
+            >
+              <Download className="h-5 w-5" />
+              {isRecording ? "Recording..." : "Record & Download"}
+            </Button>
+          </div>
+        )}
 
-          <Button
-            onClick={loadMusic}
-            disabled={musicLoaded || isLoadingMusic}
-            variant="outline"
-            size="lg"
-            className="gap-2"
-          >
-            {isLoadingMusic ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : musicLoaded ? (
-              <Volume2 className="h-5 w-5" />
-            ) : (
-              <Volume2 className="h-5 w-5" />
-            )}
-            {isLoadingMusic ? "Loading..." : musicLoaded ? "Music Ready" : "Load Music"}
-          </Button>
-          
-          <Button
-            onClick={startRecording}
-            disabled={isPlaying || isRecording}
-            size="lg"
-            className="gap-2"
-          >
-            <Download className="h-5 w-5" />
-            {isRecording ? "Recording..." : "Record & Download"}
-          </Button>
-        </div>
-
-        <p className="text-center text-sm text-muted-foreground">
-          Load music first for the best experience, then record in fullscreen
-        </p>
+        {showControls && !isFullscreen && (
+          <p className="text-center text-sm text-muted-foreground">
+            {isLoadingMusic ? "Loading background music..." : musicLoaded ? "Music loaded - plays in fullscreen" : "Trailer will play in fullscreen"}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -608,6 +637,152 @@ const SceneGoogleApps = () => {
         >
           All your Google apps in one place
         </motion.p>
+      </div>
+    </motion.div>
+  );
+};
+
+// Scene: Search Demo - Live search experience
+const SceneSearchDemo = () => {
+  const searchResults = [
+    { title: "React Documentation - Getting Started", url: "react.dev/learn", snippet: "Learn React with the official documentation..." },
+    { title: "Building Modern Web Applications", url: "medium.com/web-dev", snippet: "A complete guide to modern web development..." },
+    { title: "TypeScript Best Practices 2024", url: "typescript-tips.com", snippet: "Essential tips for writing clean TypeScript..." },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 bg-zinc-950"
+    >
+      {/* Top bar */}
+      <motion.div
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="w-full bg-zinc-900 border-b border-zinc-800 px-6 py-3"
+      >
+        <div className="flex items-center gap-4 max-w-4xl mx-auto">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center"
+          >
+            <span className="text-white font-bold text-sm">R</span>
+          </motion.div>
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-full px-4 py-2 flex items-center gap-3"
+          >
+            <Search className="h-4 w-4 text-zinc-400" />
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-white text-sm"
+            >
+              <TypewriterText text="best web development frameworks" />
+            </motion.span>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="flex items-center gap-2"
+          >
+            <div className="w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center">
+              <Settings className="h-4 w-4 text-zinc-400" />
+            </div>
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <User className="h-4 w-4 text-white" />
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+
+      {/* Search tabs */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.6 }}
+        className="w-full border-b border-zinc-800 px-6"
+      >
+        <div className="max-w-4xl mx-auto flex gap-6 py-2">
+          {["All", "Images", "Videos", "News", "Maps"].map((tab, i) => (
+            <motion.span
+              key={tab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 + i * 0.05 }}
+              className={`text-sm py-2 ${i === 0 ? 'text-blue-400 border-b-2 border-blue-400' : 'text-zinc-400'}`}
+            >
+              {tab}
+            </motion.span>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Results */}
+      <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
+        {searchResults.map((result, i) => (
+          <motion.div
+            key={result.title}
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 1 + i * 0.2 }}
+            className="group"
+          >
+            <motion.div
+              whileHover={{ x: 5 }}
+              className="space-y-1"
+            >
+              <div className="flex items-center gap-2 text-zinc-500 text-xs">
+                <Globe className="h-3 w-3" />
+                {result.url}
+              </div>
+              <h3 className="text-blue-400 text-lg font-medium group-hover:underline flex items-center gap-2">
+                {result.title}
+                <motion.span
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.5 + i * 0.2 }}
+                >
+                  <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </motion.span>
+              </h3>
+              <p className="text-zinc-400 text-sm">{result.snippet}</p>
+            </motion.div>
+          </motion.div>
+        ))}
+        
+        {/* AI Summary bubble */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ delay: 1.8 }}
+          className="mt-8 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-xl p-4"
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center shrink-0">
+              <span className="text-sm">✨</span>
+            </div>
+            <div>
+              <h4 className="text-white font-medium mb-1">AI Summary</h4>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 2 }}
+                className="text-zinc-400 text-sm"
+              >
+                Based on your search, React, Vue, and Svelte are the top frameworks for web development in 2024...
+              </motion.p>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </motion.div>
   );
