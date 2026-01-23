@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, X, Globe, Grid3X3, Pencil } from "lucide-react";
+import { Plus, Globe, Grid3X3, Pencil, Image, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
-import ThemeToggle from "@/components/ThemeToggle";
+import GoogleAppsGrid from "@/components/GoogleAppsGrid";
+import CustomizePanel from "@/components/CustomizePanel";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { User } from "@supabase/supabase-js";
 import {
@@ -14,6 +15,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -47,11 +53,13 @@ const ShortcutIcon = ({ favicon, name }: { favicon?: string; name: string }) => 
 const NewTab = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
-  const [shortcuts, setShortcuts] = useLocalStorage<Shortcut[]>("ridel-newtab-shortcuts", DEFAULT_SHORTCUTS);
+  const [shortcuts, setShortcuts] = useLocalStorage<Shortcut[]>("ridell-newtab-shortcuts", DEFAULT_SHORTCUTS);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showCustomize, setShowCustomize] = useState(false);
+  const [showAppsGrid, setShowAppsGrid] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -139,23 +147,31 @@ const NewTab = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-end gap-3 p-4">
+      <header className="flex items-center justify-end gap-2 p-4">
         <button
           onClick={() => navigate('/search?tab=images')}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="p-2 hover:bg-muted rounded-full transition-colors"
+          title="Images"
         >
-          Images
+          <Image className="w-5 h-5 text-muted-foreground" />
         </button>
         <button
           onClick={() => navigate('/history')}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="p-2 hover:bg-muted rounded-full transition-colors"
+          title="History"
         >
-          History
+          <History className="w-5 h-5 text-muted-foreground" />
         </button>
-        <ThemeToggle />
-        <button className="p-2 hover:bg-muted rounded-full transition-colors">
-          <Grid3X3 className="w-5 h-5 text-muted-foreground" />
-        </button>
+        <Popover open={showAppsGrid} onOpenChange={setShowAppsGrid}>
+          <PopoverTrigger asChild>
+            <button className="p-2 hover:bg-muted rounded-full transition-colors" title="Apps">
+              <Grid3X3 className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[320px] p-2" align="end">
+            <GoogleAppsGrid />
+          </PopoverContent>
+        </Popover>
         {user ? (
           <Avatar 
             className="w-8 h-8 cursor-pointer"
@@ -175,8 +191,7 @@ const NewTab = () => {
           >
             Sign in
           </Button>
-        )}
-      </header>
+        )}</header>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-start pt-[15vh] px-4">
@@ -291,12 +306,18 @@ const NewTab = () => {
           variant="secondary"
           size="sm"
           className="gap-2"
-          onClick={() => navigate('/')}
+          onClick={() => setShowCustomize(true)}
         >
           <Pencil className="w-4 h-4" />
-          Go to Ridel
+          Customize RidelL
         </Button>
       </div>
+
+      {/* Customize Panel */}
+      <CustomizePanel 
+        isOpen={showCustomize} 
+        onClose={() => setShowCustomize(false)} 
+      />
     </div>
   );
 };
