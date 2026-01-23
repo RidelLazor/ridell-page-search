@@ -194,14 +194,14 @@ const NewTab = () => {
         )}</header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-start pt-[15vh] px-4">
+      <main className="flex-1 flex flex-col items-center justify-start pt-[8vh] px-4">
         {/* Logo */}
-        <div className="mb-8">
+        <div className="mb-6">
           <RidelLogo />
         </div>
 
         {/* Search Bar */}
-        <div className="w-full max-w-[584px] mb-8">
+        <div className="w-full max-w-[584px] mb-6">
           <SearchBar
             onSearch={handleSearch}
             onLucky={handleLucky}
@@ -211,7 +211,7 @@ const NewTab = () => {
         </div>
 
         {/* Shortcuts Grid */}
-        <div className="flex flex-wrap justify-center gap-4 max-w-[584px]">
+        <div className="flex flex-wrap justify-center gap-3 max-w-[584px]">
           {shortcuts.map((shortcut) => (
             <div
               key={shortcut.id}
