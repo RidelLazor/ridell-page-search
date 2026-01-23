@@ -20,6 +20,3 @@ verify_jwt = false
 
 [functions.video-search]
 verify_jwt = false
-
-[functions.trailer-music]
-verify_jwt = false
