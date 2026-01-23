@@ -11,6 +11,7 @@ import Search from "./pages/Search";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import SearchHistory from "./pages/SearchHistory";
+import NewTab from "./pages/NewTab";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/newtab" element={<NewTab />} />
             <Route path="/search" element={<Search />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/profile" element={<Profile />} />
