@@ -10,18 +10,21 @@ interface AppItem {
 }
 
 const GOOGLE_APPS: AppItem[] = [
-  { name: "Account", icon: "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png", url: "https://myaccount.google.com" },
-  { name: "Drive", icon: "https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_32dp.png", url: "https://drive.google.com" },
-  { name: "Gmail", icon: "https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico", url: "https://mail.google.com" },
-  { name: "YouTube", icon: "https://www.youtube.com/favicon.ico", url: "https://youtube.com" },
-  { name: "Gemini", icon: "https://www.gstatic.com/lamda/images/gemini_favicon_f069958c85030f2d9b65.svg", url: "https://gemini.google.com" },
-  { name: "Maps", icon: "https://maps.google.com/favicon.ico", url: "https://maps.google.com" },
-  { name: "Search", icon: "https://www.google.com/favicon.ico", url: "https://google.com" },
+  { name: "YouTube", icon: "https://www.gstatic.com/youtube/img/branding/favicon/favicon_144x144.png", url: "https://youtube.com" },
+  { name: "Gemini", icon: "https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg", url: "https://gemini.google.com" },
+  { name: "Maps", icon: "https://www.gstatic.com/images/branding/product/2x/maps_96dp.png", url: "https://maps.google.com" },
+  { name: "Search", icon: "https://www.gstatic.com/images/branding/product/2x/googleg_96dp.png", url: "https://google.com" },
   { name: "Calendar", icon: "https://ssl.gstatic.com/calendar/images/dynamiclogo_2020q4/calendar_31_2x.png", url: "https://calendar.google.com" },
-  { name: "News", icon: "https://ssl.gstatic.com/news-icon/x48/news_only.png", url: "https://news.google.com" },
-  { name: "Photos", icon: "https://ssl.gstatic.com/images/branding/product/1x/photos_2020q4_32dp.png", url: "https://photos.google.com" },
-  { name: "Meet", icon: "https://fonts.gstatic.com/s/i/productlogos/meet_2020q4/v1/web-32dp/logo_meet_2020q4_color_2x_web_32dp.png", url: "https://meet.google.com" },
-  { name: "Translate", icon: "https://ssl.gstatic.com/images/branding/product/1x/translate_32dp.png", url: "https://translate.google.com" },
+  { name: "News", icon: "https://lh3.googleusercontent.com/J6_coFbogxhRI9iM864BL_xGfAl8oatfqOWhq3Q0jCPkGaYZfIWAEFOFYKUN-FYMblH-", url: "https://news.google.com" },
+  { name: "Photos", icon: "https://www.gstatic.com/images/branding/product/2x/photos_96dp.png", url: "https://photos.google.com" },
+  { name: "Meet", icon: "https://fonts.gstatic.com/s/i/productlogos/meet_2020q4/v1/web-96dp/logo_meet_2020q4_color_2x_web_96dp.png", url: "https://meet.google.com" },
+  { name: "Translate", icon: "https://www.gstatic.com/images/branding/product/2x/translate_96dp.png", url: "https://translate.google.com" },
+  { name: "Vids", icon: "https://ssl.gstatic.com/docs/doclist/images/mediatype/icon_1_video_x96.png", url: "https://workspace.google.com/products/vids/" },
+  { name: "Sheets", icon: "https://www.gstatic.com/images/branding/product/2x/sheets_2020q4_96dp.png", url: "https://sheets.google.com" },
+  { name: "Docs", icon: "https://www.gstatic.com/images/branding/product/2x/docs_2020q4_96dp.png", url: "https://docs.google.com" },
+  { name: "Drive", icon: "https://www.gstatic.com/images/branding/product/2x/drive_2020q4_96dp.png", url: "https://drive.google.com" },
+  { name: "Gmail", icon: "https://www.gstatic.com/images/branding/product/2x/gmail_2020q4_96dp.png", url: "https://mail.google.com" },
+  { name: "Account", icon: "https://www.gstatic.com/images/branding/product/2x/googleg_96dp.png", url: "https://myaccount.google.com" },
 ];
 
 interface GoogleAppsGridProps {
