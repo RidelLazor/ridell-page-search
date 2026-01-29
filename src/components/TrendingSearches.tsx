@@ -57,7 +57,7 @@ const TrendingSearches = ({ onSearch }: TrendingSearchesProps) => {
           <TrendingUp className="h-4 w-4 text-primary" />
         )}
         <span className="text-sm font-medium text-muted-foreground">
-          {isAI ? "AI-powered trending" : "Trending searches"}
+          {isAI ? "Trending" : "Trending searches"}
         </span>
         {loading && (
           <RefreshCw className="h-3 w-3 text-muted-foreground animate-spin" />
