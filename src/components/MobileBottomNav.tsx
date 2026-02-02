@@ -1,4 +1,4 @@
-import { Bookmark, Star, History, Settings, Grid3X3, User } from "lucide-react";
+import { Bookmark, Star, History, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +8,6 @@ interface MobileBottomNavProps {
   onOpenBookmarks: () => void;
   onOpenFavorites: () => void;
   onOpenSettings: () => void;
-  onOpenApps: () => void;
 }
 
 const MobileBottomNav = ({ 
@@ -16,7 +15,6 @@ const MobileBottomNav = ({
   onOpenBookmarks, 
   onOpenFavorites, 
   onOpenSettings,
-  onOpenApps 
 }: MobileBottomNavProps) => {
   const navigate = useNavigate();
 
@@ -64,16 +62,6 @@ const MobileBottomNav = ({
         >
           <Star className="h-6 w-6 text-muted-foreground" />
           <span className="text-[10px] text-muted-foreground font-medium">Favorites</span>
-        </motion.button>
-
-        {/* Apps Grid */}
-        <motion.button
-          onClick={() => handleNavClick(onOpenApps)}
-          className="flex flex-col items-center justify-center gap-1 p-3 rounded-xl min-w-[60px] active:bg-accent transition-colors"
-          whileTap={{ scale: 0.9 }}
-        >
-          <Grid3X3 className="h-6 w-6 text-muted-foreground" />
-          <span className="text-[10px] text-muted-foreground font-medium">Apps</span>
         </motion.button>
 
         {/* History - only for logged in users */}

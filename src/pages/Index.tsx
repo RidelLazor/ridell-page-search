@@ -6,7 +6,6 @@ import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
 import MobileSearchBar from "@/components/MobileSearchBar";
 import MobileBottomNav from "@/components/MobileBottomNav";
-import MobileAppsSheet from "@/components/MobileAppsSheet";
 import AppTabs from "@/components/AppTabs";
 import SearchResults from "@/components/SearchResults";
 import MixedSearchResults from "@/components/MixedSearchResults";
@@ -19,7 +18,6 @@ import TrendingSearches from "@/components/TrendingSearches";
 import SearchTabs, { SearchTab } from "@/components/SearchTabs";
 import DateFilter, { DateRange } from "@/components/DateFilter";
 import ImageResults from "@/components/ImageResults";
-import GoogleAppsGrid from "@/components/GoogleAppsGrid";
 import { CustomizeButton, CustomizePanel } from "@/components/CustomizePanel";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -61,7 +59,6 @@ const Index = () => {
   const [showCustomize, setShowCustomize] = useState(false);
   const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
   const [showRidelTransition, setShowRidelTransition] = useState(false);
-  const [showMobileApps, setShowMobileApps] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const signInButtonRef = useRef<HTMLButtonElement>(null);
   const [buttonPosition, setButtonPosition] = useState({ x: 0, y: 0 });
@@ -332,7 +329,6 @@ const Index = () => {
           <History className="h-5 w-5" />
         </motion.button>
       )}
-      <GoogleAppsGrid openDirection={vertical ? "right" : "left"} />
       {user ? (
         <motion.div
           whileHover={{ scale: 1.1 }}
@@ -843,16 +839,8 @@ const Index = () => {
           onOpenBookmarks={() => setShowBookmarks(true)}
           onOpenFavorites={() => setShowFavorites(true)}
           onOpenSettings={() => {}}
-          onOpenApps={() => setShowMobileApps(true)}
         />
       )}
-
-      {/* Mobile apps sheet */}
-      <MobileAppsSheet
-        isOpen={showMobileApps}
-        onClose={() => setShowMobileApps(false)}
-        onNavigate={handleNavigate}
-      />
     </div>
   );
 };

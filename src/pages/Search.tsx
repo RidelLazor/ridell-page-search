@@ -12,8 +12,8 @@ import SettingsDialog from "@/components/SettingsDialog";
 import AISummary from "@/components/AISummary";
 import SearchTabs, { SearchTab } from "@/components/SearchTabs";
 import DateFilter, { DateRange } from "@/components/DateFilter";
+import MobileSearchFilters, { Region, Language } from "@/components/MobileSearchFilters";
 import ImageResults from "@/components/ImageResults";
-import GoogleAppsGrid from "@/components/GoogleAppsGrid";
 import SpellCorrection from "@/components/SpellCorrection";
 import KnowledgePanel from "@/components/KnowledgePanel";
 import Sitelinks from "@/components/Sitelinks";
@@ -83,6 +83,8 @@ const Search = () => {
   const [safeSearch] = useLocalStorage("ridel-safe-search", true);
   const [activeTab, setActiveTab] = useState<SearchTab>(initialTab);
   const [dateRange, setDateRange] = useState<DateRange>("any");
+  const [region, setRegion] = useState<Region>("any");
+  const [language, setLanguage] = useState<Language>("any");
   const [user, setUser] = useState<User | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
@@ -341,7 +343,6 @@ const Search = () => {
           <History className="h-5 w-5" />
         </motion.button>
       )}
-      <GoogleAppsGrid openDirection={vertical ? "right" : "left"} />
       {user ? (
         <Link
           to="/profile"
@@ -462,7 +463,18 @@ const Search = () => {
           
           {activeTab === "all" && (
             <div className="flex items-center gap-4 py-3 border-b border-border">
-              <DateFilter value={dateRange} onChange={handleDateChange} />
+              {isMobile ? (
+                <MobileSearchFilters
+                  dateRange={dateRange}
+                  region={region}
+                  language={language}
+                  onDateRangeChange={handleDateChange}
+                  onRegionChange={setRegion}
+                  onLanguageChange={setLanguage}
+                />
+              ) : (
+                <DateFilter value={dateRange} onChange={handleDateChange} />
+              )}
             </div>
           )}
           
