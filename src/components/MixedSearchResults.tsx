@@ -1,9 +1,10 @@
-import { Loader2, Bookmark, BookmarkCheck, ExternalLink, Image as ImageIcon, Play, Video, ChevronRight, Clock } from "lucide-react";
+import { Loader2, Bookmark, BookmarkCheck, ExternalLink, Image as ImageIcon, Play, Video, ChevronRight, ChevronDown } from "lucide-react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { ResultContextMenu } from "./ResultContextMenu";
+import { Button } from "./ui/button";
 
 interface Sitelink {
   title: string;
@@ -54,11 +55,20 @@ interface MixedSearchResultsProps {
   onResultClick: (url: string) => void;
 }
 
+const RESULTS_PER_PAGE = 10;
+
 const MixedSearchResults = ({ webResults, imageResults, videoResults = [], loading, error, onResultClick }: MixedSearchResultsProps) => {
   const [bookmarks, setBookmarks] = useLocalStorage<BookmarkItem[]>("ridel-bookmarks", []);
   const [selectedImage, setSelectedImage] = useState<ImageResult | null>(null);
   const [playingVideo, setPlayingVideo] = useState<VideoResult | null>(null);
+  const [visibleResults, setVisibleResults] = useState(RESULTS_PER_PAGE);
   const { toast } = useToast();
+
+  const hasMoreResults = webResults.length > visibleResults;
+  
+  const loadMore = () => {
+    setVisibleResults(prev => prev + RESULTS_PER_PAGE);
+  };
 
   const isBookmarked = (url: string) => {
     return bookmarks.some((b) => b.url === url);
@@ -89,14 +99,15 @@ const MixedSearchResults = ({ webResults, imageResults, videoResults = [], loadi
     }
   };
 
-  // Mix web, image, and video results
+  // Mix web, image, and video results with pagination
   const mixResults = (): MixedResult[] => {
     const mixed: MixedResult[] = [];
     const maxImages = Math.min(imageResults.length, 6);
     const maxVideos = Math.min(videoResults.length, 4);
+    const limitedWebResults = webResults.slice(0, visibleResults);
     
     // Add first 2 web results
-    webResults.slice(0, 2).forEach(r => mixed.push({ type: "web", data: r }));
+    limitedWebResults.slice(0, 2).forEach(r => mixed.push({ type: "web", data: r }));
     
     // Add video gallery section if we have videos
     if (maxVideos > 0) {
@@ -104,15 +115,15 @@ const MixedSearchResults = ({ webResults, imageResults, videoResults = [], loadi
     }
     
     // Add next 2 web results
-    webResults.slice(2, 4).forEach(r => mixed.push({ type: "web", data: r }));
+    limitedWebResults.slice(2, 4).forEach(r => mixed.push({ type: "web", data: r }));
     
     // Add image gallery section if we have images
     if (maxImages > 0) {
       imageResults.slice(0, maxImages).forEach(r => mixed.push({ type: "image", data: r }));
     }
     
-    // Add remaining web results
-    webResults.slice(4).forEach(r => mixed.push({ type: "web", data: r }));
+    // Add remaining web results (limited by visibleResults)
+    limitedWebResults.slice(4).forEach(r => mixed.push({ type: "web", data: r }));
     
     return mixed;
   };
@@ -427,6 +438,24 @@ const MixedSearchResults = ({ webResults, imageResults, videoResults = [], loadi
             </button>
           </motion.div>
         </motion.div>
+      )}
+
+      {/* Load More Button */}
+      {hasMoreResults && (
+        <div className="flex justify-center pt-6 pb-4">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={loadMore}
+            className="gap-2 px-8 rounded-full"
+          >
+            <ChevronDown className="h-4 w-4" />
+            Load more results
+            <span className="text-muted-foreground text-sm">
+              ({visibleResults} of {webResults.length})
+            </span>
+          </Button>
+        </div>
       )}
     </div>
   );

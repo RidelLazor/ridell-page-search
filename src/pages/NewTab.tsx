@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Globe, Grid3X3, Pencil, Image, History } from "lucide-react";
+import { Plus, Globe, Pencil, Image, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import RidelLogo from "@/components/RidelLogo";
 import SearchBar from "@/components/SearchBar";
-import GoogleAppsGrid from "@/components/GoogleAppsGrid";
 import CustomizePanel from "@/components/CustomizePanel";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { User } from "@supabase/supabase-js";
@@ -59,7 +58,6 @@ const NewTab = () => {
   const [newUrl, setNewUrl] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCustomize, setShowCustomize] = useState(false);
-  const [showAppsGrid, setShowAppsGrid] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -162,16 +160,6 @@ const NewTab = () => {
         >
           <History className="w-5 h-5 text-muted-foreground" />
         </button>
-        <Popover open={showAppsGrid} onOpenChange={setShowAppsGrid}>
-          <PopoverTrigger asChild>
-            <button className="p-2 hover:bg-muted rounded-full transition-colors" title="Apps">
-              <Grid3X3 className="w-5 h-5 text-muted-foreground" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[320px] p-2" align="end">
-            <GoogleAppsGrid />
-          </PopoverContent>
-        </Popover>
         {user ? (
           <Avatar 
             className="w-8 h-8 cursor-pointer"
