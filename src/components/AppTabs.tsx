@@ -1,8 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { Plus, X, Layers, Home, Search as SearchIcon, Globe } from "lucide-react";
-import { usePWA } from "@/hooks/usePWA";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+// Check if running in standalone (PWA) mode
+const checkIsStandalone = () => {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as any).standalone === true ||
+    document.referrer.includes("android-app://")
+  );
+};
 
 export interface Tab {
   id: string;
@@ -44,14 +53,19 @@ const getStoredActiveTab = (): string => {
 };
 
 const AppTabs = ({ onTabChange, onNewTab, currentQuery, currentUrl }: AppTabsProps) => {
-  const { isStandalone, isReady } = usePWA();
   const isMobile = useIsMobile();
+  const [isStandalone, setIsStandalone] = useState(false);
   const [tabs, setTabs] = useState<Tab[]>(getStoredTabs);
   const [activeTabId, setActiveTabId] = useState(getStoredActiveTab);
   const [showTabs, setShowTabs] = useState(false);
   const lastQueryRef = useRef<string | undefined>(undefined);
   const lastUrlRef = useRef<string | undefined>(undefined);
   const initializedRef = useRef(false);
+
+  // Check standalone mode on mount
+  useEffect(() => {
+    setIsStandalone(checkIsStandalone());
+  }, []);
 
   // Initialize refs on mount
   useEffect(() => {
@@ -192,8 +206,8 @@ const AppTabs = ({ onTabChange, onNewTab, currentQuery, currentUrl }: AppTabsPro
     }
   }, [tabs.length, closeTab]);
 
-  // Don't render until PWA state is ready, and only show in standalone mode
-  if (!isReady || !isStandalone) {
+  // Only show in standalone mode
+  if (!isStandalone) {
     return null;
   }
 
