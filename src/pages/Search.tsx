@@ -22,9 +22,18 @@ import InAppBrowser from "@/components/InAppBrowser";
 import { CustomizeButton, CustomizePanel } from "@/components/CustomizePanel";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { usePWA } from "@/hooks/usePWA";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+
+// Check if running in standalone (PWA) mode
+const checkIsStandalone = () => {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as any).standalone === true ||
+    document.referrer.includes("android-app://")
+  );
+};
 
 interface Sitelink {
   title: string;
@@ -95,7 +104,12 @@ const Search = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { isStandalone } = usePWA();
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  // Check standalone mode on mount
+  useEffect(() => {
+    setIsStandalone(checkIsStandalone());
+  }, []);
 
   // Check auth state
   useEffect(() => {
