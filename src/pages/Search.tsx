@@ -128,12 +128,13 @@ const Search = () => {
 
   // Update page title based on search query
   useEffect(() => {
-    if (searchQuery) {
-      document.title = searchQuery;
+    const query = searchQuery || initialQuery;
+    if (query) {
+      document.title = query;
     } else {
-      document.title = "Search";
+      document.title = "RidelL - Search";
     }
-  }, [searchQuery]);
+  }, [searchQuery, initialQuery]);
 
   // Perform search on mount or when query changes
   useEffect(() => {
