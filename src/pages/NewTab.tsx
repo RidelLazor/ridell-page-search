@@ -59,6 +59,11 @@ const NewTab = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCustomize, setShowCustomize] = useState(false);
 
+  // Set page title
+  useEffect(() => {
+    document.title = "New Tab";
+  }, []);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);

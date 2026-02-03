@@ -126,6 +126,15 @@ const Search = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Update page title based on search query
+  useEffect(() => {
+    if (searchQuery) {
+      document.title = searchQuery;
+    } else {
+      document.title = "Search";
+    }
+  }, [searchQuery]);
+
   // Perform search on mount or when query changes
   useEffect(() => {
     if (initialQuery) {
