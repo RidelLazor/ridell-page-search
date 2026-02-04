@@ -19,6 +19,7 @@ import SearchTabs, { SearchTab } from "@/components/SearchTabs";
 import DateFilter, { DateRange } from "@/components/DateFilter";
 import ImageResults from "@/components/ImageResults";
 import { CustomizeButton, CustomizePanel } from "@/components/CustomizePanel";
+import ReLyMiChat from "@/components/ReLyMiChat";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useTransitionSound } from "@/hooks/useTransitionSound";
@@ -58,11 +59,10 @@ const Index = () => {
   const [isExiting, setIsExiting] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
   const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
-  const [showRidelTransition, setShowRidelTransition] = useState(false);
+  const [showReLyMiChat, setShowReLyMiChat] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const signInButtonRef = useRef<HTMLButtonElement>(null);
   const [buttonPosition, setButtonPosition] = useState({ x: 0, y: 0 });
-  const [ridelButtonPosition, setRidelButtonPosition] = useState({ x: 0, y: 0 });
   const navigate = useNavigate();
   const { playWhooshSound, playClickSound } = useTransitionSound();
   const { soundEnabled } = useSoundSettings();
@@ -97,7 +97,7 @@ const Index = () => {
   }, []);
 
   const handleAskAI = useCallback(() => {
-    window.location.href = "https://ridelai.lovable.app/";
+    setShowReLyMiChat(true);
   }, []);
 
   useKeyboardShortcuts({
@@ -271,24 +271,9 @@ const Index = () => {
     }, 800);
   };
 
-  const handleRidelNavigate = (e: React.MouseEvent<HTMLButtonElement>) => {
-    const button = e.currentTarget;
-    const rect = button.getBoundingClientRect();
-    setRidelButtonPosition({
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-    });
+  const handleReLyMiOpen = () => {
     if (soundEnabled) playClickSound();
-    setIsExiting(true);
-    setShowRidelTransition(true);
-    
-    setTimeout(() => {
-      if (soundEnabled) playWhooshSound();
-    }, 100);
-    
-    setTimeout(() => {
-      window.location.href = "https://ridelai.lovable.app/";
-    }, 800);
+    setShowReLyMiChat(true);
   };
 
   const renderControls = (vertical = false, iconsOnly = false) => (
@@ -382,12 +367,12 @@ const Index = () => {
       )}
       {iconsOnly ? (
         <motion.button
-          onClick={handleRidelNavigate}
+          onClick={handleReLyMiOpen}
           className="inline-flex items-center justify-center w-10 h-10 rounded-full text-white shadow-lg hover:shadow-xl transition-shadow"
           style={{
             background: "linear-gradient(135deg, #4285F4 0%, #EA4335 33%, #FBBC05 66%, #34A853 100%)",
           }}
-          title="Chat with Ridel AI"
+          title="Chat with ReLyMi"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           transition={{ type: "spring", stiffness: 400, damping: 17 }}
@@ -398,7 +383,7 @@ const Index = () => {
         </motion.button>
       ) : (
         <motion.button
-          onClick={handleRidelNavigate}
+          onClick={handleReLyMiOpen}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-medium text-sm shadow-lg hover:shadow-xl transition-shadow"
           style={{
             background: "linear-gradient(135deg, #4285F4 0%, #EA4335 33%, #FBBC05 66%, #34A853 100%)",
@@ -410,7 +395,7 @@ const Index = () => {
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
           </svg>
-          Chat with Ridel AI
+          Chat with ReLyMi
         </motion.button>
       )}
     </div>
@@ -774,59 +759,12 @@ const Index = () => {
         )}
       </AnimatePresence>
 
-      {/* Ridel AI transition overlay */}
-      <AnimatePresence>
-        {showRidelTransition && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="rounded-full flex items-center justify-center"
-              style={{
-                background: "linear-gradient(135deg, #4285F4 0%, #EA4335 33%, #FBBC05 66%, #34A853 100%)",
-              }}
-              initial={{ 
-                width: 40, 
-                height: 40,
-                x: ridelButtonPosition.x - window.innerWidth / 2,
-                y: ridelButtonPosition.y - window.innerHeight / 2,
-              }}
-              animate={{ 
-                width: Math.max(window.innerWidth, window.innerHeight) * 2.5,
-                height: Math.max(window.innerWidth, window.innerHeight) * 2.5,
-                x: 0,
-                y: 0,
-              }}
-              transition={{ 
-                duration: 0.6, 
-                ease: [0.4, 0, 0.2, 1],
-              }}
-            >
-              <motion.div
-                className="relative"
-                initial={{ opacity: 1, scale: 1 }}
-                animate={{ opacity: 0, scale: 0.5 }}
-                transition={{ delay: 0.3, duration: 0.3 }}
-              >
-                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
-                </svg>
-              </motion.div>
-              <motion.div
-                className="absolute"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.2 }}
-              >
-                <Loader2 className="w-8 h-8 text-white animate-spin" />
-              </motion.div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ReLyMi Chat Dialog */}
+      <ReLyMiChat 
+        open={showReLyMiChat} 
+        onOpenChange={setShowReLyMiChat}
+        initialQuery={searchQuery}
+      />
 
       {/* Desktop customize button - hidden on mobile */}
       {!isMobile && <CustomizeButton onClick={() => setShowCustomize(true)} />}
