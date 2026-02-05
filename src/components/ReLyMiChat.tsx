@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerTitle, DrawerPortal, DrawerOverlay } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import loadingGif from "@/assets/relymi-loading.gif";
@@ -297,7 +297,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
         {tabs.map(tab => (
           <motion.button
             key={tab.id}
-            onClick={() => setActiveTabId(tab.id)}
+            onClick={(e) => { e.stopPropagation(); setActiveTabId(tab.id); }}
             className={cn(
               "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors min-w-0",
               tab.id === activeTabId 
@@ -310,7 +310,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
             <MessageCircle className="h-3.5 w-3.5 flex-shrink-0" />
             <span className="truncate max-w-[100px]">{tab.title}</span>
             <button
-              onClick={(e) => { e.stopPropagation(); deleteTab(tab.id); }}
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); deleteTab(tab.id); }}
               className="ml-1 p-0.5 rounded hover:bg-destructive/20 hover:text-destructive transition-colors"
             >
               <X className="h-3 w-3" />
@@ -318,7 +318,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
           </motion.button>
         ))}
         <motion.button
-          onClick={createNewTab}
+          onClick={(e) => { e.stopPropagation(); createNewTab(); }}
           className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground transition-colors flex-shrink-0"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -374,7 +374,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
                 {msg.role === "assistant" && msg.content && (
                   <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/50">
                     <button
-                      onClick={() => copyText(msg.content, msg.id)}
+                      onClick={(e) => { e.stopPropagation(); copyText(msg.content, msg.id); }}
                       className="p-1.5 rounded hover:bg-background/50 transition-colors"
                       title="Copy"
                     >
@@ -385,7 +385,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
                       )}
                     </button>
                     <button
-                      onClick={() => toggleSpeech(msg.content)}
+                      onClick={(e) => { e.stopPropagation(); toggleSpeech(msg.content); }}
                       className="p-1.5 rounded hover:bg-background/50 transition-colors"
                       title={isSpeaking ? "Stop" : "Listen"}
                     >
@@ -444,7 +444,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
       <div className="p-4 border-t border-border">
         {activeTab.messages.length > 0 && activeTab.messages[activeTab.messages.length - 1]?.role === "assistant" && (
           <button
-            onClick={regenerateLastResponse}
+            onClick={(e) => { e.stopPropagation(); regenerateLastResponse(); }}
             disabled={isLoading}
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-2 transition-colors disabled:opacity-50"
           >
@@ -464,7 +464,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
             disabled={isLoading}
           />
           <motion.button
-            onClick={sendMessage}
+            onClick={(e) => { e.stopPropagation(); sendMessage(); }}
             disabled={!input.trim() || isLoading}
             className="px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             whileHover={{ scale: 1.02 }}
@@ -480,7 +480,10 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="h-[85vh] max-h-[85vh]">
+        <DrawerContent 
+          className="h-[85vh] max-h-[85vh]"
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
           <DrawerTitle className="sr-only">ReLyMi AI Chat</DrawerTitle>
           <ChatContent />
         </DrawerContent>
@@ -490,7 +493,11 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[80vh] max-h-[700px] p-0 overflow-hidden">
+      <DialogContent 
+        className="max-w-2xl h-[80vh] max-h-[700px] p-0 overflow-hidden"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogTitle className="sr-only">ReLyMi AI Chat</DialogTitle>
         <ChatContent />
       </DialogContent>
