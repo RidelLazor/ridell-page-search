@@ -290,7 +290,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const ChatContent = () => (
+  const chatContent = (
     <div className="flex flex-col h-full select-none" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
       {/* Tabs header */}
       <div className="flex items-center gap-1 px-2 py-2 border-b border-border overflow-x-auto scrollbar-hide">
@@ -511,7 +511,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
           onPointerDownOutside={(e) => e.preventDefault()}
         >
           <DrawerTitle className="sr-only">ReLyMi AI Chat</DrawerTitle>
-          <ChatContent />
+          {chatContent}
         </DrawerContent>
       </Drawer>
     );
@@ -525,7 +525,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogTitle className="sr-only">ReLyMi AI Chat</DialogTitle>
-        <ChatContent />
+        {chatContent}
       </DialogContent>
     </Dialog>
   );
