@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Send, Plus, Trash2, Volume2, VolumeX, Copy, Check,
-  MessageCircle, Sparkles, RotateCcw
+  MessageCircle, Sparkles, RotateCcw, Square
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -43,6 +43,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const isMobile = useIsMobile();
 
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
@@ -63,7 +64,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
     }
   }, [open, initialQuery]);
 
-  const streamChat = useCallback(async (messages: Message[], onDelta: (text: string) => void, onDone: () => void) => {
+  const streamChat = useCallback(async (messages: Message[], onDelta: (text: string) => void, onDone: () => void, signal?: AbortSignal) => {
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
@@ -73,6 +74,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
       body: JSON.stringify({ 
         messages: messages.map(m => ({ role: m.role, content: m.content }))
       }),
+      signal,
     });
 
     if (!resp.ok) {
@@ -88,6 +90,10 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
     let streamDone = false;
 
     while (!streamDone) {
+      if (signal?.aborted) {
+        await reader.cancel();
+        break;
+      }
       const { done, value } = await reader.read();
       if (done) break;
       textBuffer += decoder.decode(value, { stream: true });
@@ -186,11 +192,27 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
     };
 
     try {
+      abortControllerRef.current = new AbortController();
       const allMessages = [...activeTab.messages, userMessage];
-      await streamChat(allMessages, updateAssistant, () => setIsLoading(false));
+      await streamChat(allMessages, updateAssistant, () => setIsLoading(false), abortControllerRef.current.signal);
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        // User cancelled, don't show error
+        setIsLoading(false);
+        return;
+      }
       console.error("Chat error:", err);
       setError(err instanceof Error ? err.message : "Failed to send message");
+      setIsLoading(false);
+    } finally {
+      abortControllerRef.current = null;
+    }
+  };
+
+  const stopGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
       setIsLoading(false);
     }
   };
@@ -264,11 +286,18 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
     };
 
     try {
-      await streamChat(newMessages, updateAssistant, () => setIsLoading(false));
+      abortControllerRef.current = new AbortController();
+      await streamChat(newMessages, updateAssistant, () => setIsLoading(false), abortControllerRef.current.signal);
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        setIsLoading(false);
+        return;
+      }
       console.error("Regenerate error:", err);
       setError(err instanceof Error ? err.message : "Failed to regenerate");
       setIsLoading(false);
+    } finally {
+      abortControllerRef.current = null;
     }
   };
 
@@ -292,8 +321,8 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
 
   const chatContent = (
     <div className="flex flex-col h-full select-none" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-      {/* Tabs header */}
-      <div className="flex items-center gap-1 px-2 py-2 border-b border-border overflow-x-auto scrollbar-hide">
+      {/* Tabs header - sticky */}
+      <div className="sticky top-0 z-10 flex items-center gap-1 px-2 py-2 border-b border-border overflow-x-auto scrollbar-hide bg-background">
         {tabs.map((tab) => (
           <motion.div
             key={tab.id}
@@ -488,16 +517,29 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
             rows={1}
             disabled={isLoading}
           />
-          <motion.button
-            onClick={(e) => { e.stopPropagation(); sendMessage(); }}
-            onMouseDown={(e) => e.stopPropagation()}
-            disabled={!input.trim() || isLoading}
-            className="px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Send className="h-5 w-5" />
-          </motion.button>
+          {isLoading ? (
+            <motion.button
+              onClick={(e) => { e.stopPropagation(); stopGeneration(); }}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="px-4 rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              title="Stop generating"
+            >
+              <Square className="h-5 w-5" />
+            </motion.button>
+          ) : (
+            <motion.button
+              onClick={(e) => { e.stopPropagation(); sendMessage(); }}
+              onMouseDown={(e) => e.stopPropagation()}
+              disabled={!input.trim()}
+              className="px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Send className="h-5 w-5" />
+            </motion.button>
+          )}
         </div>
       </div>
     </div>
