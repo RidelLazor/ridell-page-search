@@ -291,13 +291,14 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
   };
 
   const ChatContent = () => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full select-none" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
       {/* Tabs header */}
       <div className="flex items-center gap-1 px-2 py-2 border-b border-border overflow-x-auto scrollbar-hide">
         {tabs.map(tab => (
           <motion.button
             key={tab.id}
             onClick={(e) => { e.stopPropagation(); setActiveTabId(tab.id); }}
+            onMouseDown={(e) => e.stopPropagation()}
             className={cn(
               "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors min-w-0",
               tab.id === activeTabId 
@@ -319,6 +320,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
         ))}
         <motion.button
           onClick={(e) => { e.stopPropagation(); createNewTab(); }}
+          onMouseDown={(e) => e.stopPropagation()}
           className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground transition-colors flex-shrink-0"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -375,6 +377,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
                   <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/50">
                     <button
                       onClick={(e) => { e.stopPropagation(); copyText(msg.content, msg.id); }}
+                      onMouseDown={(e) => e.stopPropagation()}
                       className="p-1.5 rounded hover:bg-background/50 transition-colors"
                       title="Copy"
                     >
@@ -386,6 +389,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleSpeech(msg.content); }}
+                      onMouseDown={(e) => e.stopPropagation()}
                       className="p-1.5 rounded hover:bg-background/50 transition-colors"
                       title={isSpeaking ? "Stop" : "Listen"}
                     >
@@ -445,6 +449,7 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
         {activeTab.messages.length > 0 && activeTab.messages[activeTab.messages.length - 1]?.role === "assistant" && (
           <button
             onClick={(e) => { e.stopPropagation(); regenerateLastResponse(); }}
+            onMouseDown={(e) => e.stopPropagation()}
             disabled={isLoading}
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-2 transition-colors disabled:opacity-50"
           >
@@ -458,13 +463,15 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            onMouseDown={(e) => e.stopPropagation()}
             placeholder="Ask ReLyMi anything..."
-            className="flex-1 min-h-[44px] max-h-[120px] px-4 py-3 rounded-xl border border-border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="flex-1 min-h-[44px] max-h-[120px] px-4 py-3 rounded-xl border border-border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 select-text"
             rows={1}
             disabled={isLoading}
           />
           <motion.button
             onClick={(e) => { e.stopPropagation(); sendMessage(); }}
+            onMouseDown={(e) => e.stopPropagation()}
             disabled={!input.trim() || isLoading}
             className="px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             whileHover={{ scale: 1.02 }}
