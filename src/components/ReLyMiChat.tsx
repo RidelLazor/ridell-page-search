@@ -294,29 +294,48 @@ const ReLyMiChat = ({ open, onOpenChange, initialQuery }: ReLyMiChatProps) => {
     <div className="flex flex-col h-full select-none" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
       {/* Tabs header */}
       <div className="flex items-center gap-1 px-2 py-2 border-b border-border overflow-x-auto scrollbar-hide">
-        {tabs.map(tab => (
-          <motion.button
+        {tabs.map((tab) => (
+          <motion.div
             key={tab.id}
-            onClick={(e) => { e.stopPropagation(); setActiveTabId(tab.id); }}
-            onMouseDown={(e) => e.stopPropagation()}
             className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors min-w-0",
-              tab.id === activeTabId 
-                ? "bg-primary/10 text-primary" 
+              "flex items-center gap-1 rounded-lg text-sm whitespace-nowrap transition-colors min-w-0",
+              tab.id === activeTabId
+                ? "bg-primary/10 text-primary"
                 : "hover:bg-secondary text-muted-foreground"
             )}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
           >
-            <MessageCircle className="h-3.5 w-3.5 flex-shrink-0" />
-            <span className="truncate max-w-[100px]">{tab.title}</span>
             <button
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); deleteTab(tab.id); }}
-              className="ml-1 p-0.5 rounded hover:bg-destructive/20 hover:text-destructive transition-colors"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveTabId(tab.id);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="flex items-center gap-2 px-3 py-1.5 min-w-0"
+            >
+              <MessageCircle className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate max-w-[100px]">{tab.title}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                deleteTab(tab.id);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="mr-1 p-0.5 rounded hover:bg-destructive/20 hover:text-destructive transition-colors"
+              aria-label="Close tab"
+              title="Close tab"
             >
               <X className="h-3 w-3" />
             </button>
-          </motion.button>
+          </motion.div>
         ))}
         <motion.button
           onClick={(e) => { e.stopPropagation(); createNewTab(); }}
