@@ -1,4 +1,4 @@
-import { Settings, Moon, Sun, Shield, ShieldCheck, Volume2, VolumeX, History, Bell, Eye, EyeOff } from "lucide-react";
+import { Settings, Moon, Sun, Shield, ShieldCheck, Volume2, VolumeX, History, Bell, Eye, EyeOff, Sparkles } from "lucide-react";
 import { useTheme } from "next-themes";
 import { motion } from "framer-motion";
 import {
@@ -24,6 +24,7 @@ const SettingsDialog = ({ onOpenSearchHistory }: SettingsDialogProps) => {
   const [showPreviews, setShowPreviews] = useLocalStorage("ridel-show-previews", true);
   const [notifications, setNotifications] = useLocalStorage("ridel-notifications", true);
   const [autoComplete, setAutoComplete] = useLocalStorage("ridel-autocomplete", true);
+  const [aiSummaryEnabled, setAiSummaryEnabled] = useLocalStorage("ridel-ai-summary", true);
 
   return (
     <Dialog>
@@ -73,7 +74,7 @@ const SettingsDialog = ({ onOpenSearchHistory }: SettingsDialogProps) => {
             <h3 className="text-sm font-medium text-muted-foreground">Search</h3>
             <div className="flex items-center justify-between p-3 rounded-lg bg-accent/30 hover:bg-accent/50 transition-colors">
               <div className="flex items-center gap-3">
-                {safeSearch ? <ShieldCheck className="h-5 w-5 text-green-500" /> : <Shield className="h-5 w-5" />}
+                {safeSearch ? <ShieldCheck className="h-5 w-5 text-primary" /> : <Shield className="h-5 w-5" />}
                 <div>
                   <p className="font-medium text-sm">Safe Search</p>
                   <p className="text-xs text-muted-foreground">Filter explicit content from results</p>
@@ -110,6 +111,20 @@ const SettingsDialog = ({ onOpenSearchHistory }: SettingsDialogProps) => {
               <Switch
                 checked={autoComplete}
                 onCheckedChange={setAutoComplete}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-lg bg-accent/30 hover:bg-accent/50 transition-colors">
+              <div className="flex items-center gap-3">
+                <Sparkles className={`h-5 w-5 ${aiSummaryEnabled ? 'text-primary' : ''}`} />
+                <div>
+                  <p className="font-medium text-sm">AI Summary</p>
+                  <p className="text-xs text-muted-foreground">Show AI-generated summaries in search results</p>
+                </div>
+              </div>
+              <Switch
+                checked={aiSummaryEnabled}
+                onCheckedChange={setAiSummaryEnabled}
               />
             </div>
           </div>
