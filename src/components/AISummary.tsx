@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { Sparkles, ChevronDown, ChevronUp, Volume2, VolumeX, Loader2 } from "lucide-react";
+import { Sparkles, ChevronDown, ChevronUp, Volume2, VolumeX, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 interface AISummaryProps {
   query: string;
@@ -13,10 +15,17 @@ const AISummary = ({ query, results }: AISummaryProps) => {
   const [expanded, setExpanded] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState(false);
+  const [aiSummaryEnabled] = useLocalStorage("ridel-ai-summary", true);
+
+  useEffect(() => {
+    // Reset dismissed state when query changes
+    setDismissed(false);
+  }, [query]);
 
   useEffect(() => {
     const generateSummary = async () => {
-      if (!query || results.length === 0) {
+      if (!query || results.length === 0 || !aiSummaryEnabled) {
         setSummary(null);
         return;
       }
@@ -47,7 +56,7 @@ const AISummary = ({ query, results }: AISummaryProps) => {
     };
 
     generateSummary();
-  }, [query, results]);
+  }, [query, results, aiSummaryEnabled]);
 
   const toggleSpeech = () => {
     if (isSpeaking) {
@@ -61,15 +70,32 @@ const AISummary = ({ query, results }: AISummaryProps) => {
     }
   };
 
-  if (!query || results.length === 0) return null;
+  const handleDismiss = () => {
+    if (isSpeaking) {
+      speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+    setDismissed(true);
+  };
+
+  if (!aiSummaryEnabled || !query || results.length === 0 || dismissed) return null;
 
   if (loading) {
     return (
       <div className="mb-6 p-4 rounded-xl bg-secondary/50 border border-border">
-        <div className="flex items-center gap-2 text-primary">
-          <Sparkles className="h-5 w-5" />
-          <span className="font-medium">AI Summary</span>
-          <Loader2 className="h-4 w-4 animate-spin ml-2" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-primary">
+            <Sparkles className="h-5 w-5" />
+            <span className="font-medium">AI Summary</span>
+            <Loader2 className="h-4 w-4 animate-spin ml-2" />
+          </div>
+          <button
+            onClick={handleDismiss}
+            className="p-1.5 rounded-full hover:bg-accent transition-colors"
+            title="Dismiss"
+          >
+            <X className="h-4 w-4 text-muted-foreground" />
+          </button>
         </div>
         <div className="mt-3 space-y-2">
           <div className="h-4 bg-muted rounded animate-pulse w-full" />
@@ -104,6 +130,7 @@ const AISummary = ({ query, results }: AISummaryProps) => {
           <button
             onClick={() => setExpanded(!expanded)}
             className="p-1.5 rounded-full hover:bg-accent transition-colors"
+            title={expanded ? "Collapse" : "Expand"}
           >
             {expanded ? (
               <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -111,12 +138,21 @@ const AISummary = ({ query, results }: AISummaryProps) => {
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             )}
           </button>
+          <button
+            onClick={handleDismiss}
+            className="p-1.5 rounded-full hover:bg-accent transition-colors"
+            title="Dismiss"
+          >
+            <X className="h-4 w-4 text-muted-foreground" />
+          </button>
         </div>
       </div>
       {expanded && (
-        <p className="mt-3 text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-          {summary}
-        </p>
+        <ScrollArea className="mt-3 max-h-48">
+          <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap pr-3">
+            {summary}
+          </p>
+        </ScrollArea>
       )}
     </div>
   );
