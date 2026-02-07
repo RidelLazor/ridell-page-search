@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import AppearanceApplier from "@/components/AppearanceApplier";
 import OfflineDetector from "@/components/OfflineDetector";
-import BlazeEffects from "@/components/BlazeEffects";
 import Index from "./pages/Index";
 import Search from "./pages/Search";
 import Auth from "./pages/Auth";
@@ -21,7 +20,6 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AppearanceApplier />
-      <BlazeEffects emberCount={18} />
       <OfflineDetector>
         <TooltipProvider>
           <Toaster />
