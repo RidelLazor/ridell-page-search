@@ -50,8 +50,8 @@ export const BlazeEmbers = ({ count = 20 }: { count?: number }) => {
             bottom: "-20px",
             width: ember.size,
             height: ember.size,
-            background: `radial-gradient(circle, hsl(24 95% 60%) 0%, hsl(15 90% 50%) 50%, transparent 100%)`,
-            boxShadow: `0 0 ${ember.size * 2}px hsl(24 95% 55% / 0.6)`,
+            background: `radial-gradient(circle, hsl(var(--accent)) 0%, hsl(var(--primary)) 45%, transparent 100%)`,
+            boxShadow: `0 0 ${ember.size * 2}px hsl(var(--primary) / 0.55)`,
           }}
           animate={{
             y: [0, -window.innerHeight - 100],
@@ -69,10 +69,10 @@ export const BlazeEmbers = ({ count = 20 }: { count?: number }) => {
       ))}
       
       {/* Subtle fire glow at bottom */}
-      <div 
+      <div
         className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
         style={{
-          background: "linear-gradient(to top, hsl(24 80% 50% / 0.08), transparent)",
+          background: "linear-gradient(to top, hsl(var(--primary) / 0.10), transparent)",
         }}
       />
     </div>
@@ -83,11 +83,14 @@ export const BlazeEmbers = ({ count = 20 }: { count?: number }) => {
 export const useBlazeClick = () => {
   const [sparks, setSparks] = useState<ClickSpark[]>([]);
 
-  const createSpark = useCallback((e: MouseEvent) => {
+  const createSpark = useCallback((e: PointerEvent | MouseEvent) => {
+    const clientX = "clientX" in e ? e.clientX : 0;
+    const clientY = "clientY" in e ? e.clientY : 0;
+
     const newSpark: ClickSpark = {
       id: Date.now() + Math.random(),
-      x: e.clientX,
-      y: e.clientY,
+      x: clientX,
+      y: clientY,
     };
     setSparks((prev) => [...prev, newSpark]);
 
@@ -98,8 +101,10 @@ export const useBlazeClick = () => {
   }, []);
 
   useEffect(() => {
-    document.addEventListener("click", createSpark);
-    return () => document.removeEventListener("click", createSpark);
+    // Use capture + pointerdown so sparks still fire even when components stop propagation on click.
+    document.addEventListener("pointerdown", createSpark as EventListener, { capture: true });
+    return () =>
+      document.removeEventListener("pointerdown", createSpark as EventListener, { capture: true });
   }, [createSpark]);
 
   return sparks;
@@ -117,7 +122,8 @@ export const BlazeClickEffect = () => {
             <motion.div
               className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full"
               style={{
-                background: "radial-gradient(circle, hsl(45 100% 70%) 0%, hsl(24 95% 55%) 40%, transparent 70%)",
+                background:
+                  "radial-gradient(circle, hsl(var(--accent)) 0%, hsl(var(--primary)) 40%, transparent 70%)",
               }}
               initial={{ width: 0, height: 0, opacity: 1 }}
               animate={{ width: 40, height: 40, opacity: 0 }}
@@ -136,15 +142,16 @@ export const BlazeClickEffect = () => {
                   style={{
                     width: 4 + Math.random() * 3,
                     height: 4 + Math.random() * 3,
-                    background: i % 2 === 0 
-                      ? "hsl(24 95% 55%)" 
-                      : i % 3 === 0 
-                        ? "hsl(45 100% 60%)" 
-                        : "hsl(15 90% 50%)",
-                    boxShadow: "0 0 6px hsl(24 95% 55% / 0.8)",
+                    background:
+                      i % 3 === 0
+                        ? "hsl(var(--accent))"
+                        : i % 2 === 0
+                          ? "hsl(var(--primary))"
+                          : "hsl(var(--destructive))",
+                    boxShadow: "0 0 6px hsl(var(--primary) / 0.75)",
                   }}
                   initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-                  animate={{ 
+                  animate={{
                     x: Math.cos(angle) * distance,
                     y: Math.sin(angle) * distance - 10,
                     opacity: 0,
@@ -159,7 +166,7 @@ export const BlazeClickEffect = () => {
             <motion.div
               className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2"
               style={{
-                borderColor: "hsl(24 95% 55% / 0.6)",
+                borderColor: "hsl(var(--primary) / 0.6)",
               }}
               initial={{ width: 10, height: 10, opacity: 0.8 }}
               animate={{ width: 60, height: 60, opacity: 0 }}
