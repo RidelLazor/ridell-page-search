@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import SearchHistory from "./pages/SearchHistory";
 import NewTab from "./pages/NewTab";
+import Legacy from "./pages/Legacy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/newtab" element={<NewTab />} />
               <Route path="/search" element={<Search />} />
+              <Route path="/legacy" element={<Legacy />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/history" element={<SearchHistory />} />
