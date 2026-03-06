@@ -19,7 +19,7 @@ import SearchTabs, { SearchTab } from "@/components/SearchTabs";
 import DateFilter, { DateRange } from "@/components/DateFilter";
 import ImageResults from "@/components/ImageResults";
 import { CustomizeButton, CustomizePanel } from "@/components/CustomizePanel";
-import ReLyMiChat from "@/components/ReLyMiChat";
+import RidelAIOverlay from "@/components/RidelAIOverlay";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useTransitionSound } from "@/hooks/useTransitionSound";
@@ -56,7 +56,8 @@ const Index = () => {
   const [isExiting, setIsExiting] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
   const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
-  const [showReLyMiChat, setShowReLyMiChat] = useState(false);
+  const [showRidelAI, setShowRidelAI] = useState(false);
+  const [ridelAIOrigin, setRidelAIOrigin] = useState<{ x: number; y: number } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const signInButtonRef = useRef<HTMLButtonElement>(null);
   const [buttonPosition, setButtonPosition] = useState({
@@ -102,8 +103,12 @@ const Index = () => {
   const toggleFavorites = useCallback(() => {
     setShowFavorites(prev => !prev);
   }, []);
-  const handleAskAI = useCallback(() => {
-    setShowReLyMiChat(true);
+  const handleAskAI = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      setRidelAIOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+    }
+    setShowRidelAI(true);
   }, []);
   useKeyboardShortcuts({
     onFocusSearch: focusSearch,
@@ -269,9 +274,11 @@ const Index = () => {
       navigate("/auth");
     }, 800);
   };
-  const handleReLyMiOpen = () => {
+  const handleRidelAIOpen = (e: React.MouseEvent) => {
     if (soundEnabled) playClickSound();
-    setShowReLyMiChat(true);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setRidelAIOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+    setShowRidelAI(true);
   };
   const renderControls = (vertical = false, iconsOnly = false) => <div className={`flex ${vertical ? 'flex-col' : ''} items-center gap-3`}>
       <SettingsDialog onOpenSearchHistory={user ? () => navigate("/history") : undefined} />
@@ -352,9 +359,9 @@ const Index = () => {
           </svg>
           Sign in
         </motion.button>}
-      {iconsOnly ? <motion.button onClick={handleReLyMiOpen} className="inline-flex items-center justify-center w-10 h-10 rounded-full text-white shadow-lg hover:shadow-xl transition-shadow" style={{
+      {iconsOnly ? <motion.button onClick={handleRidelAIOpen} className="inline-flex items-center justify-center w-10 h-10 rounded-full text-white shadow-lg hover:shadow-xl transition-shadow" style={{
       background: "linear-gradient(135deg, #4285F4 0%, #EA4335 33%, #FBBC05 66%, #34A853 100%)"
-    }} title="Chat with ReLyMi" whileHover={{
+    }} title="Ridel AI" whileHover={{
       scale: 1.1
     }} whileTap={{
       scale: 0.9
@@ -366,7 +373,7 @@ const Index = () => {
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" />
           </svg>
-        </motion.button> : <motion.button onClick={handleReLyMiOpen} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-medium text-sm shadow-lg hover:shadow-xl transition-shadow" style={{
+        </motion.button> : <motion.button onClick={handleRidelAIOpen} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-medium text-sm shadow-lg hover:shadow-xl transition-shadow" style={{
       background: "linear-gradient(135deg, #4285F4 0%, #EA4335 33%, #FBBC05 66%, #34A853 100%)"
     }} whileHover={{
       scale: 1.05
@@ -380,7 +387,7 @@ const Index = () => {
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" />
           </svg>
-          Chat with ReLyMi
+          Ridel AI
         </motion.button>}
     </div>;
   return <div className="min-h-screen bg-transparent overflow-x-hidden">
@@ -688,8 +695,8 @@ const Index = () => {
           </motion.div>}
       </AnimatePresence>
 
-      {/* ReLyMi Chat Dialog */}
-      <ReLyMiChat open={showReLyMiChat} onOpenChange={setShowReLyMiChat} initialQuery={searchQuery} />
+      {/* Ridel AI Overlay */}
+      <RidelAIOverlay open={showRidelAI} onOpenChange={setShowRidelAI} originRect={ridelAIOrigin} />
 
       {/* Desktop customize button - hidden on mobile */}
       {!isMobile && <CustomizeButton onClick={() => setShowCustomize(true)} />}
