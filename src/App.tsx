@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import SearchHistory from "./pages/SearchHistory";
 import NewTab from "./pages/NewTab";
+import Legacy from "./pages/Legacy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
