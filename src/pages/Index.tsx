@@ -493,7 +493,7 @@ const Index = () => {
           }} transition={{
             delay: 0.2,
             duration: 0.4
-          }}>BLAZE UPDATE</motion.p>
+          }}>Based off of polebrowse browser</motion.p>
               <motion.div className="w-full" initial={{
             opacity: 0,
             y: 20
