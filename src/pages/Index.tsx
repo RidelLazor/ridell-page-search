@@ -57,7 +57,7 @@ const Index = () => {
   const [showCustomize, setShowCustomize] = useState(false);
   const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
   const [showRidelAI, setShowRidelAI] = useState(false);
-  const [ridelAIOrigin, setRidelAIOrigin] = useState<{ x: number; y: number } | null>(null);
+  const [ridelAIOrigin, setRidelAIOrigin] = useState<{x: number;y: number;} | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const signInButtonRef = useRef<HTMLButtonElement>(null);
   const [buttonPosition, setButtonPosition] = useState({
@@ -98,10 +98,10 @@ const Index = () => {
     searchInputRef.current?.focus();
   }, []);
   const toggleBookmarks = useCallback(() => {
-    setShowBookmarks(prev => !prev);
+    setShowBookmarks((prev) => !prev);
   }, []);
   const toggleFavorites = useCallback(() => {
-    setShowFavorites(prev => !prev);
+    setShowFavorites((prev) => !prev);
   }, []);
   const handleAskAI = useCallback((e?: React.MouseEvent) => {
     if (e) {
@@ -392,7 +392,7 @@ const Index = () => {
     </div>;
   return <div className="min-h-screen bg-transparent overflow-x-hidden">
       {/* App-only Tab Navigation - Both Mobile and Desktop */}
-      <AppTabs currentQuery={searchQuery} onTabChange={tab => {
+      <AppTabs currentQuery={searchQuery} onTabChange={(tab) => {
       if (tab.type === "search" && tab.query) {
         setSearchQuery(tab.query);
       } else if (tab.type === "webview" && tab.url) {
@@ -493,7 +493,7 @@ const Index = () => {
           }} transition={{
             delay: 0.2,
             duration: 0.4
-          }}>Based off of polebrowse browser</motion.p>
+          }}>Search the web </motion.p>
               <motion.div className="w-full" initial={{
             opacity: 0,
             y: 20
