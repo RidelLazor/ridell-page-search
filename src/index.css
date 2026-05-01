@@ -14,63 +14,53 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 60 4% 95%;
-    --foreground: 24 9% 10%;
+    /* Brave-inspired dark theme (default) */
+    --background: 222 14% 11%;
+    --foreground: 0 0% 98%;
 
-    --card: 60 9% 97%;
-    --card-foreground: 24 9% 10%;
+    --card: 222 13% 15%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 20 5% 90%;
-    --popover-foreground: 24 9% 10%;
+    --popover: 222 13% 15%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 37 92% 50%;
-    --primary-foreground: 47 100% 96%;
+    --primary: 250 84% 64%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 24 5% 44%;
-    --secondary-foreground: 60 9% 97%;
+    --secondary: 222 13% 20%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 23 5% 82%;
-    --muted-foreground: 24 9% 10%;
+    --muted: 222 13% 20%;
+    --muted-foreground: 220 9% 65%;
 
-    --accent: 47 100% 96%;
-    --accent-foreground: 37 92% 50%;
+    --accent: 250 84% 64%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 50%;
-    --destructive-foreground: 0 85% 97%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 23 5% 82%;
-    --input: 23 5% 82%;
-    --ring: 37 92% 50%;
+    --border: 222 13% 22%;
+    --input: 222 13% 18%;
+    --ring: 250 84% 64%;
 
-    --radius: 1rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 222 14% 9%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 250 84% 64%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 13% 18%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 222 13% 22%;
+    --sidebar-ring: 250 84% 64%;
 
-    --sidebar-foreground: 24 9% 10%;
+    --chart-1: 250 84% 64%;
+    --chart-2: 260 70% 60%;
+    --chart-3: 220 70% 60%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 220 9% 65%;
 
-    --sidebar-primary: 37 92% 50%;
-
-    --sidebar-primary-foreground: 47 100% 96%;
-
-    --sidebar-accent: 24 5% 44%;
-
-    --sidebar-accent-foreground: 60 9% 97%;
-
-    --sidebar-border: 23 5% 82%;
-
-    --sidebar-ring: 37 92% 50%;
-
-    --chart-1: 45 96% 64%;
-
-    --chart-2: 47 95% 53%;
-
-    --chart-3: 43 96% 56%;
-
-    --chart-4: 37 92% 50%;
-
-    --chart-5: 24 5% 44%;
-
-    --sidebar: 60 9% 97%;
+    --sidebar: 222 14% 9%;
 
     --font-sans: 'Source Sans Pro', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
 
@@ -100,47 +90,47 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 24 9% 10%;
-    --foreground: 60 9% 97%;
+    --background: 222 14% 11%;
+    --foreground: 0 0% 98%;
 
-    --card: 12 6% 15%;
-    --card-foreground: 60 9% 97%;
+    --card: 222 13% 15%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 30 6% 25%;
-    --popover-foreground: 60 9% 97%;
+    --popover: 222 13% 15%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 43 96% 56%;
-    --primary-foreground: 20 91% 14%;
+    --primary: 250 84% 64%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 24 5% 44%;
-    --secondary-foreground: 60 9% 97%;
+    --secondary: 222 13% 20%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 24 5% 44%;
-    --muted-foreground: 60 9% 97%;
+    --muted: 222 13% 20%;
+    --muted-foreground: 220 9% 65%;
 
-    --accent: 25 83% 14%;
-    --accent-foreground: 47 95% 53%;
+    --accent: 250 84% 64%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 85% 97%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 33 5% 32%;
-    --input: 33 5% 32%;
-    --ring: 43 96% 56%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 60 9% 97%;
-    --sidebar-primary: 43 96% 56%;
-    --sidebar-primary-foreground: 20 91% 14%;
-    --sidebar-accent: 47 95% 53%;
-    --sidebar-accent-foreground: 25 83% 14%;
-    --sidebar-border: 33 5% 32%;
-    --sidebar-ring: 43 96% 56%;
-    --chart-1: 45 96% 64%;
-    --chart-2: 48 96% 76%;
-    --chart-3: 43 96% 56%;
-    --chart-4: 37 92% 50%;
-    --chart-5: 33 5% 32%;
-    --sidebar: 12 6% 15%;
+    --border: 222 13% 22%;
+    --input: 222 13% 18%;
+    --ring: 250 84% 64%;
+    --sidebar-background: 222 14% 9%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 250 84% 64%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 13% 18%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 222 13% 22%;
+    --sidebar-ring: 250 84% 64%;
+    --chart-1: 250 84% 64%;
+    --chart-2: 260 70% 60%;
+    --chart-3: 220 70% 60%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 220 9% 65%;
+    --sidebar: 222 14% 9%;
     --radius: 0rem;
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
