@@ -1,51 +1,13 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { Bookmark, ChevronLeft, ChevronRight, History, Star } from "lucide-react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import RidelLogo from "@/components/RidelLogo";
-import SearchBar from "@/components/SearchBar";
-import MobileSearchBar from "@/components/MobileSearchBar";
-import MixedSearchResults from "@/components/MixedSearchResults";
-import BookmarksPanel from "@/components/BookmarksPanel";
-import FavoritesPanel from "@/components/FavoritesPanel";
-import SettingsDialog from "@/components/SettingsDialog";
-import AISummary from "@/components/AISummary";
-import SearchTabs, { SearchTab } from "@/components/SearchTabs";
-import DateFilter, { DateRange } from "@/components/DateFilter";
-import MobileSearchFilters, { Region, Language } from "@/components/MobileSearchFilters";
-import ImageResults from "@/components/ImageResults";
-import SpellCorrection from "@/components/SpellCorrection";
-import KnowledgePanel from "@/components/KnowledgePanel";
-import Sitelinks from "@/components/Sitelinks";
-import AppTabs from "@/components/AppTabs";
-import InAppBrowser from "@/components/InAppBrowser";
-import { CustomizeButton, CustomizePanel } from "@/components/CustomizePanel";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Search as SearchIcon, X, Mic, Settings, SlidersHorizontal, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
-
-// Check if running in standalone (PWA) mode
-const checkIsStandalone = () => {
-  if (typeof window === "undefined") return false;
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as any).standalone === true ||
-    document.referrer.includes("android-app://")
-  );
-};
-
-interface Sitelink {
-  title: string;
-  url: string;
-  description?: string;
-}
+import KnowledgePanel from "@/components/KnowledgePanel";
 
 interface SearchResult {
   title: string;
   url: string;
   description: string;
-  sitelinks?: Sitelink[];
 }
 
 interface ImageResult {
@@ -53,15 +15,6 @@ interface ImageResult {
   url: string;
   thumbnail: string;
   source: string;
-}
-
-interface VideoResult {
-  title: string;
-  url: string;
-  thumbnail: string;
-  duration: string;
-  source: string;
-  embedUrl: string | null;
 }
 
 interface KnowledgePanelData {
@@ -73,572 +26,299 @@ interface KnowledgePanelData {
   source?: string;
   sourceUrl?: string;
   attributes?: { label: string; value: string }[];
-  appRatings?: { store: string; rating: string; url?: string }[];
 }
+
+type Tab = "ask" | "all" | "images" | "news" | "videos" | "goggles";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "ask", label: "Ask" },
+  { id: "all", label: "All" },
+  { id: "images", label: "Images" },
+  { id: "news", label: "News" },
+  { id: "videos", label: "Videos" },
+  { id: "goggles", label: "Goggles" },
+];
+
+const getHostname = (url: string) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+};
+
+const getFavicon = (url: string) => {
+  try {
+    const host = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?domain=${host}&sz=64`;
+  } catch {
+    return "";
+  }
+};
 
 const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const initialQuery = searchParams.get("q") || "";
-  const initialTab = (searchParams.get("tab") as SearchTab) || "all";
-  
-  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const initialTab = (searchParams.get("tab") as Tab) || "all";
+
+  const [query, setQuery] = useState(initialQuery);
+  const [inputValue, setInputValue] = useState(initialQuery);
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [imageResults, setImageResults] = useState<ImageResult[]>([]);
-  const [videoResults, setVideoResults] = useState<VideoResult[]>([]);
+  const [knowledge, setKnowledge] = useState<KnowledgePanelData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showBookmarks, setShowBookmarks] = useState(false);
-  const [showFavorites, setShowFavorites] = useState(false);
-  const [safeSearch] = useLocalStorage("ridel-safe-search", true);
-  const [activeTab, setActiveTab] = useState<SearchTab>(initialTab);
-  const [dateRange, setDateRange] = useState<DateRange>("any");
-  const [region, setRegion] = useState<Region>("any");
-  const [language, setLanguage] = useState<Language>("any");
-  const [user, setUser] = useState<User | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [showCustomize, setShowCustomize] = useState(false);
-  const [spellCorrection, setSpellCorrection] = useState<string | null>(null);
-  const [knowledgePanel, setKnowledgePanel] = useState<KnowledgePanelData | null>(null);
-  const [originalQuery, setOriginalQuery] = useState<string>("");
-  const [browserUrl, setBrowserUrl] = useState<string | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const [isStandalone, setIsStandalone] = useState(false);
 
-  // Check standalone mode on mount
-  useEffect(() => {
-    setIsStandalone(checkIsStandalone());
-  }, []);
-
-  // Check auth state
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Update page title based on search query
-  useEffect(() => {
-    const query = searchQuery || initialQuery;
-    if (query) {
-      document.title = query;
-    } else {
-      document.title = "RidelL - Search";
-    }
-  }, [searchQuery, initialQuery]);
-
-  // Perform search on mount or when query changes
-  useEffect(() => {
-    if (initialQuery) {
-      performSearch(initialQuery, false, activeTab);
-    }
-  }, []);
-
-  const saveSearchHistory = async (query: string) => {
-    if (!user) return;
-    try {
-      await supabase.from("search_history").insert({
-        user_id: user.id,
-        query: query.trim(),
-      });
-    } catch (error) {
-      console.error("Error saving search history:", error);
-    }
-  };
-
-  const performSearch = async (query: string, goToFirst = false, tab: SearchTab = activeTab, date: DateRange = dateRange, ignoreSpellCheck = false) => {
-    setSearchQuery(query);
-    setOriginalQuery(query);
+  const performSearch = useCallback(async (q: string, tab: Tab) => {
+    if (!q.trim()) return;
     setLoading(true);
     setError(null);
-    if (!ignoreSpellCheck) {
-      setSpellCorrection(null);
-    }
-    setKnowledgePanel(null);
-    
-    // Update URL
-    setSearchParams({ q: query, tab });
-
-    // Save to search history for signed-in users
-    saveSearchHistory(query);
-
+    setKnowledge(null);
     try {
       if (tab === "images") {
         const { data, error: fnError } = await supabase.functions.invoke("image-search", {
-          body: { query, safeSearch },
+          body: { query: q, safeSearch: true },
         });
-
         if (fnError) throw new Error(fnError.message);
-
-        if (data.success && data.results) {
-          setImageResults(data.results);
-          setResults([]);
-        } else {
-          setError(data.error || "Image search failed");
-          setImageResults([]);
-        }
-      } else if (tab === "all") {
-        const [webResponse, imageResponse, videoResponse] = await Promise.all([
-          supabase.functions.invoke("search", {
-            body: { query, safeSearch, dateRange: date },
-          }),
-          supabase.functions.invoke("image-search", {
-            body: { query, safeSearch },
-          }),
-          supabase.functions.invoke("video-search", {
-            body: { query, safeSearch },
-          }),
-        ]);
-
-        if (webResponse.error) throw new Error(webResponse.error.message);
-
-        if (webResponse.data.success && webResponse.data.results) {
-          setResults(webResponse.data.results);
-          
-          // Handle spell correction
-          if (webResponse.data.spellCorrection && !ignoreSpellCheck) {
-            setSpellCorrection(webResponse.data.spellCorrection);
-          }
-          
-          // Handle knowledge panel
-          if (webResponse.data.knowledgePanel) {
-            setKnowledgePanel(webResponse.data.knowledgePanel);
-          }
-          
-          if (goToFirst && webResponse.data.results.length > 0) {
-            window.location.href = webResponse.data.results[0].url;
-          }
-        } else {
-          setError(webResponse.data.error || "Search failed");
-          setResults([]);
-        }
-
-        if (imageResponse.data?.success && imageResponse.data?.results) {
-          setImageResults(imageResponse.data.results);
-        } else {
-          setImageResults([]);
-        }
-
-        if (videoResponse.data?.success && videoResponse.data?.results) {
-          setVideoResults(videoResponse.data.results);
-        } else {
-          setVideoResults([]);
-        }
-      } else if (tab === "videos") {
-        const { data, error: fnError } = await supabase.functions.invoke("video-search", {
-          body: { query, safeSearch },
-        });
-
-        if (fnError) throw new Error(fnError.message);
-
-        if (data.success && data.results) {
-          setVideoResults(data.results);
-          setResults([]);
-          setImageResults([]);
-        } else {
-          setError(data.error || "Video search failed");
-          setVideoResults([]);
-        }
+        setImageResults(data?.results || []);
+        setResults([]);
       } else {
-        const { data, error: fnError } = await supabase.functions.invoke("search", {
-          body: { query, safeSearch, dateRange: date },
-        });
-
-        if (fnError) throw new Error(fnError.message);
-
-        if (data.success && data.results) {
-          setResults(data.results);
-          setImageResults([]);
-          setVideoResults([]);
-          
-          if (goToFirst && data.results.length > 0) {
-            window.location.href = data.results[0].url;
-          }
+        const [webRes, imgRes] = await Promise.all([
+          supabase.functions.invoke("search", { body: { query: q, safeSearch: true } }),
+          tab === "all"
+            ? supabase.functions.invoke("image-search", { body: { query: q, safeSearch: true } })
+            : Promise.resolve({ data: null }),
+        ]);
+        if (webRes.error) throw new Error(webRes.error.message);
+        if (webRes.data?.success) {
+          setResults(webRes.data.results || []);
+          if (webRes.data.knowledgePanel) setKnowledge(webRes.data.knowledgePanel);
         } else {
-          setError(data.error || "Search failed");
+          setError(webRes.data?.error || "Search failed");
           setResults([]);
         }
+        setImageResults(imgRes?.data?.results || []);
       }
-    } catch (err) {
-      console.error("Search error:", err);
-      setError("Failed to perform search. Please try again.");
-      setResults([]);
-      setImageResults([]);
-      setVideoResults([]);
+    } catch (e) {
+      console.error(e);
+      setError("Failed to perform search.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleSearch = (query: string) => {
-    performSearch(query, false);
-  };
-
-  const handleSearchOriginal = (query: string) => {
-    performSearch(query, false, activeTab, dateRange, true);
-  };
-
-  const handleSearchCorrected = (query: string) => {
-    setSpellCorrection(null);
-    performSearch(query, false);
-  };
-
-  const handleLucky = (query: string) => {
-    performSearch(query, true);
-  };
-
-  const handleNavigate = (url: string) => {
-    window.location.href = url;
-  };
-
-  const handleResultClick = useCallback((url: string) => {
-    // Always use in-app browser in standalone mode (both mobile and desktop)
-    if (isStandalone) {
-      setBrowserUrl(url);
-    } else {
-      window.open(url, '_blank', 'noopener,noreferrer');
+  useEffect(() => {
+    if (initialQuery) {
+      setQuery(initialQuery);
+      setInputValue(initialQuery);
+      performSearch(initialQuery, activeTab);
     }
-  }, [isStandalone]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery]);
 
-  const closeBrowser = () => {
-    setBrowserUrl(null);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim()) return;
+    setQuery(inputValue);
+    setSearchParams({ q: inputValue, tab: activeTab });
+    performSearch(inputValue, activeTab);
   };
 
-  const handleGoHome = () => {
-    navigate("/");
-  };
-
-  const handleTabChange = (tab: SearchTab) => {
+  const handleTab = (tab: Tab) => {
     setActiveTab(tab);
-    setSearchParams({ q: searchQuery, tab });
-    if (searchQuery) {
-      performSearch(searchQuery, false, tab);
+    if (query) {
+      setSearchParams({ q: query, tab });
+      performSearch(query, tab);
     }
   };
-
-  const handleDateChange = (date: DateRange) => {
-    setDateRange(date);
-    if (searchQuery && activeTab === "all") {
-      performSearch(searchQuery, false, activeTab, date);
-    }
-  };
-
-  const renderControls = (vertical = false, iconsOnly = false) => (
-    <div className={`flex ${vertical ? 'flex-col' : ''} items-center gap-3`}>
-      <SettingsDialog onOpenSearchHistory={user ? () => navigate("/history") : undefined} />
-      <motion.button
-        onClick={() => setShowBookmarks(true)}
-        className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
-        aria-label="Bookmarks"
-        title="Bookmarks"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-      >
-        <Bookmark className="h-5 w-5" />
-      </motion.button>
-      <motion.button
-        onClick={() => setShowFavorites(true)}
-        className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
-        aria-label="Pinned Searches"
-        title="Pinned Searches"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-      >
-        <Star className="h-5 w-5" />
-      </motion.button>
-      {user && (
-        <motion.button
-          onClick={() => navigate("/history")}
-          className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
-          aria-label="Search History"
-          title="Search History"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <History className="h-5 w-5" />
-        </motion.button>
-      )}
-      {user ? (
-        <Link
-          to="/profile"
-          className="inline-flex items-center justify-center w-10 h-10 rounded-full overflow-hidden hover:ring-2 ring-primary transition-colors"
-          title="View profile"
-        >
-          <img 
-            src={user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email}`} 
-            alt="Profile" 
-            className="w-10 h-10 rounded-full"
-          />
-        </Link>
-      ) : (
-        <motion.button
-          onClick={() => navigate("/auth")}
-          className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white hover:bg-gray-50 border border-gray-300 transition-colors"
-          title="Sign in"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-          </svg>
-        </motion.button>
-      )}
-    </div>
-  );
-
 
   return (
-    <div className={`min-h-[100dvh] bg-background overflow-x-hidden overflow-y-auto ${isStandalone && !isMobile ? 'pt-10' : ''}`}>
-      {/* App-only Tab Navigation */}
-      <AppTabs 
-        currentQuery={searchQuery}
-        onTabChange={(tab) => {
-          if (tab.type === "search" && tab.query) {
-            setSearchParams({ q: tab.query, tab: activeTab });
-            performSearch(tab.query);
-          } else if (tab.type === "webview" && tab.url) {
-            window.location.href = tab.url;
-          } else {
-            navigate("/");
-          }
-        }}
-        onNewTab={() => navigate("/")}
-      />
-      <div className="flex min-h-[100dvh]">
-        {/* Sidebar toggle - desktop only */}
-        {!isMobile && (
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hidden md:flex fixed left-0 top-1/2 -translate-y-1/2 z-40 items-center justify-center w-6 h-12 bg-secondary hover:bg-secondary/80 rounded-r-lg border border-l-0 border-border transition-all duration-300"
-            style={{ left: sidebarCollapsed ? 0 : '3.5rem' }}
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          </button>
-        )}
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Top bar */}
+      <header className="px-6 py-4 flex items-center gap-6 border-b border-border/40">
+        {/* Logo */}
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity"
+        >
+          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg">
+            R
+          </div>
+          <span className="text-2xl font-semibold tracking-tight hidden sm:inline">ridel</span>
+        </button>
 
-        {/* Sidebar - desktop only */}
-        {!isMobile && (
-          <aside className={`hidden md:flex flex-col gap-3 p-3 border-r border-border bg-background/50 transition-all duration-300 ${sidebarCollapsed ? 'w-0 p-0 overflow-hidden border-0' : 'w-14'}`}>
-            {renderControls(true, true)}
-          </aside>
-        )}
-
-        {/* Main content */}
-        <div className={`flex-1 w-full ${isMobile ? 'px-3 py-3' : 'w-full max-w-4xl px-4 py-6 mx-auto'} overflow-x-hidden`}>
-          {/* Mobile header */}
-          {isMobile ? (
-            <div className="flex flex-col gap-3 mb-3">
-              <div className="flex items-center justify-between">
-                <button onClick={handleGoHome} className="flex-shrink-0">
-                  <RidelLogo size="small" />
-                </button>
-                <div className="flex items-center gap-2">
-                  <SettingsDialog />
-                  <button
-                    onClick={() => setShowBookmarks(true)}
-                    className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-secondary"
-                  >
-                    <Bookmark className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              <MobileSearchBar
-                onSearch={handleSearch}
-                onLucky={handleLucky}
-                onNavigate={handleNavigate}
-                initialQuery={searchQuery}
-                compact
-                inputRef={searchInputRef}
-              />
-            </div>
-          ) : (
-            <div className="flex items-center gap-6 mb-4">
-              <button onClick={handleGoHome}>
-                <RidelLogo size="small" />
-              </button>
-              <div className="flex-1">
-                <SearchBar
-                  onSearch={handleSearch}
-                  onLucky={handleLucky}
-                  onNavigate={handleNavigate}
-                  initialQuery={searchQuery}
-                  compact
-                  inputRef={searchInputRef}
-                />
-              </div>
-              {/* Desktop controls are in sidebar */}
-            </div>
-          )}
-          
-          <SearchTabs activeTab={activeTab} onTabChange={handleTabChange} />
-          
-          {activeTab === "all" && (
-            <div className="flex items-center gap-4 py-3 border-b border-border">
-              {isMobile ? (
-                <MobileSearchFilters
-                  dateRange={dateRange}
-                  region={region}
-                  language={language}
-                  onDateRangeChange={handleDateChange}
-                  onRegionChange={setRegion}
-                  onLanguageChange={setLanguage}
-                />
-              ) : (
-                <DateFilter value={dateRange} onChange={handleDateChange} />
-              )}
-            </div>
-          )}
-          
-          {activeTab === "all" && (
-            <div className="flex flex-col lg:flex-row gap-6">
-              {/* Main results column */}
-              <div className="flex-1 min-w-0">
-                {/* Spell Correction */}
-                {spellCorrection && (
-                  <SpellCorrection
-                    originalQuery={originalQuery}
-                    correctedQuery={spellCorrection}
-                    onSearchCorrected={handleSearchCorrected}
-                    onSearchOriginal={handleSearchOriginal}
-                  />
-                )}
-                
-                <AISummary query={searchQuery} results={results} />
-                
-                {/* First result with sitelinks */}
-                {results.length > 0 && results[0].sitelinks && results[0].sitelinks.length > 0 && !loading && (
-                  <div className="mb-4">
-                    <Sitelinks 
-                      sitelinks={results[0].sitelinks} 
-                      onNavigate={handleResultClick} 
-                    />
-                  </div>
-                )}
-                
-                <MixedSearchResults
-                  webResults={results}
-                  imageResults={imageResults}
-                  videoResults={videoResults}
-                  loading={loading}
-                  error={error}
-                  onResultClick={handleResultClick}
-                />
-              </div>
-              
-              {/* Knowledge Panel - desktop only */}
-              {!isMobile && knowledgePanel && !loading && (
-                <KnowledgePanel 
-                  data={knowledgePanel} 
-                  onNavigate={handleResultClick} 
-                />
-              )}
-            </div>
-          )}
-          
-          {activeTab === "images" && (
-            <ImageResults
-              results={imageResults}
-              loading={loading}
-              error={error}
+        {/* Search bar */}
+        <form onSubmit={handleSubmit} className="flex-1 max-w-3xl">
+          <div className="flex items-center gap-2 bg-secondary/60 hover:bg-secondary rounded-full px-5 py-3 transition-colors focus-within:bg-secondary focus-within:ring-2 focus-within:ring-primary/40">
+            <input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+              placeholder="Search the web"
+              autoFocus
             />
-          )}
-          
-          {activeTab === "videos" && (
-            <div className="py-4">
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                  <span className="ml-3 text-muted-foreground">Searching videos...</span>
-                </div>
-              ) : error ? (
-                <p className="text-destructive text-center py-8">{error}</p>
-              ) : videoResults.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No video results found.</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {videoResults.map((video, index) => (
-                    <div
-                      key={index}
-                      className="group cursor-pointer rounded-lg overflow-hidden bg-card border border-border hover:border-primary/50 transition-colors"
-                      onClick={() => handleResultClick(video.url)}
-                    >
-                      <div className="aspect-video relative">
-                        <img
-                          src={video.thumbnail}
-                          alt={video.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                          <div className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
-                            <svg className="h-7 w-7 text-white ml-1" fill="white" viewBox="0 0 24 24">
-                              <path d="M8 5v14l11-7z"/>
-                            </svg>
-                          </div>
-                        </div>
-                        {video.duration && (
-                          <span className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-1.5 py-0.5 rounded">
-                            {video.duration}
-                          </span>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        <p className="font-medium line-clamp-2">{video.title}</p>
-                        <p className="text-sm text-muted-foreground mt-1">{video.source}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          
-          {activeTab === "news" && (
-            <div className="py-12 text-center">
-              <p className="text-muted-foreground">News search coming soon!</p>
-            </div>
-          )}
+            {inputValue && (
+              <button
+                type="button"
+                onClick={() => setInputValue("")}
+                className="p-1 rounded-full hover:bg-background/40 text-muted-foreground"
+                aria-label="Clear"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              type="submit"
+              className="p-1 rounded-full hover:bg-background/40 text-muted-foreground"
+              aria-label="Search"
+            >
+              <SearchIcon className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              className="p-1.5 rounded-full bg-background/60 text-muted-foreground hover:text-foreground"
+              aria-label="Voice search"
+            >
+              <Mic className="w-4 h-4" />
+            </button>
+          </div>
+        </form>
+
+        {/* Right controls */}
+        <div className="flex items-center gap-2 ml-auto shrink-0">
+          <button
+            className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Filters"
+          >
+            <SlidersHorizontal className="w-5 h-5" />
+          </button>
+          <button
+            className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* Tabs */}
+      <div className="px-6 border-b border-border/40">
+        <div className="max-w-3xl ml-[calc(2.5rem+1rem)] flex items-center gap-1 overflow-x-auto scrollbar-hide">
+          {TABS.map((t) => {
+            const active = activeTab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => handleTab(t.id)}
+                className={`px-4 py-3 text-sm font-medium rounded-full transition-colors whitespace-nowrap ${
+                  active
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+          <button
+            className="ml-auto p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+            aria-label="More filters"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      <BookmarksPanel
-        isOpen={showBookmarks}
-        onClose={() => setShowBookmarks(false)}
-        onNavigate={handleNavigate}
-      />
+      {/* Body */}
+      <main className="px-6 py-6">
+        <div className="flex gap-8 max-w-7xl mx-auto">
+          {/* Left column: results */}
+          <div className="flex-1 max-w-2xl">
+            {loading && (
+              <div className="flex items-center gap-2 text-muted-foreground py-8">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Searching…</span>
+              </div>
+            )}
 
-      <FavoritesPanel
-        isOpen={showFavorites}
-        onClose={() => setShowFavorites(false)}
-        onSearch={handleSearch}
-      />
+            {error && !loading && (
+              <p className="text-destructive py-4">{error}</p>
+            )}
 
-      <CustomizeButton onClick={() => setShowCustomize(true)} />
-      <CustomizePanel isOpen={showCustomize} onClose={() => setShowCustomize(false)} />
+            {!loading && !error && activeTab === "images" && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {imageResults.map((img, i) => (
+                  <a
+                    key={i}
+                    href={img.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group block rounded-lg overflow-hidden bg-card aspect-square"
+                  >
+                    <img
+                      src={img.thumbnail}
+                      alt={img.title}
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                  </a>
+                ))}
+                {imageResults.length === 0 && (
+                  <p className="text-muted-foreground col-span-full">No images found.</p>
+                )}
+              </div>
+            )}
 
-      {/* In-app browser for standalone mode */}
-      <AnimatePresence>
-        {browserUrl && (
-          <InAppBrowser
-            url={browserUrl}
-            onClose={closeBrowser}
-            onNavigate={(url) => setBrowserUrl(url)}
-          />
-        )}
-      </AnimatePresence>
+            {!loading && !error && activeTab !== "images" && (
+              <div className="space-y-7">
+                {results.map((r, i) => (
+                  <article key={i}>
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <img
+                        src={getFavicon(r.url)}
+                        alt=""
+                        className="w-6 h-6 rounded-full bg-card p-0.5"
+                        onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+                      />
+                      <div className="text-sm leading-tight">
+                        <div className="text-foreground font-medium">{getHostname(r.url)}</div>
+                        <div className="text-xs text-muted-foreground truncate max-w-md">
+                          {getHostname(r.url)} › {r.url.split("/").slice(3, 5).join(" › ")}
+                        </div>
+                      </div>
+                    </div>
+                    <a
+                      href={r.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-xl text-primary hover:underline leading-snug mb-1"
+                    >
+                      {r.title}
+                    </a>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {r.description}
+                    </p>
+                  </article>
+                ))}
+                {results.length === 0 && query && (
+                  <p className="text-muted-foreground">No results found.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Right column: knowledge panel */}
+          {knowledge && !loading && (
+            <aside className="hidden lg:block w-[360px] shrink-0">
+              <div className="bg-card border border-border/60 rounded-2xl p-6 sticky top-6">
+                <KnowledgePanel data={knowledge} onNavigate={(u) => (window.location.href = u)} />
+              </div>
+            </aside>
+          )}
+        </div>
+      </main>
     </div>
   );
 };
