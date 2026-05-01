@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search as SearchIcon, X, Mic, Settings, SlidersHorizontal, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import KnowledgePanel from "@/components/KnowledgePanel";
+import AISummary from "@/components/AISummary";
 
 interface SearchResult {
   title: string;
@@ -143,9 +144,7 @@ const Search = () => {
           onClick={() => navigate("/")}
           className="flex items-center gap-2 shrink-0 hover:opacity-80 transition-opacity"
         >
-          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg">
-            R
-          </div>
+          <img src="/favicon.ico" alt="RidelL" className="w-9 h-9 rounded-lg" />
           <span className="text-2xl font-semibold tracking-tight hidden sm:inline">ridel</span>
         </button>
 
@@ -236,6 +235,10 @@ const Search = () => {
         <div className="flex gap-8 max-w-7xl mx-auto">
           {/* Left column: results */}
           <div className="flex-1 max-w-2xl">
+            {!loading && !error && activeTab === "ask" && query && results.length > 0 && (
+              <AISummary query={query} results={results} />
+            )}
+
             {loading && (
               <div className="flex items-center gap-2 text-muted-foreground py-8">
                 <Loader2 className="w-4 h-4 animate-spin" />
