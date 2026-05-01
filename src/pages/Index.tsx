@@ -359,9 +359,7 @@ const Index = () => {
           </svg>
           Sign in
         </motion.button>}
-      {iconsOnly ? <motion.button onClick={handleRidelAIOpen} className="inline-flex items-center justify-center w-10 h-10 rounded-full text-white shadow-lg hover:shadow-xl transition-shadow" style={{
-      background: "linear-gradient(135deg, #4285F4 0%, #EA4335 33%, #FBBC05 66%, #34A853 100%)"
-    }} title="Ridel AI" whileHover={{
+      {iconsOnly ? <motion.button onClick={handleRidelAIOpen} className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:bg-primary/90 transition-all" title="Ridel AI" whileHover={{
       scale: 1.1
     }} whileTap={{
       scale: 0.9
@@ -373,9 +371,7 @@ const Index = () => {
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" />
           </svg>
-        </motion.button> : <motion.button onClick={handleRidelAIOpen} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-white font-medium text-sm shadow-lg hover:shadow-xl transition-shadow" style={{
-      background: "linear-gradient(135deg, #4285F4 0%, #EA4335 33%, #FBBC05 66%, #34A853 100%)"
-    }} whileHover={{
+        </motion.button> : <motion.button onClick={handleRidelAIOpen} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground font-medium text-sm shadow-lg hover:shadow-xl hover:bg-primary/90 transition-all" whileHover={{
       scale: 1.05
     }} whileTap={{
       scale: 0.95
