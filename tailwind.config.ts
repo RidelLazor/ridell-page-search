@@ -14,6 +14,10 @@ export default {
   	},
   	extend: {
   		fontFamily: {
+			display: [
+				'Archivo Black',
+				'sans-serif'
+			],
   			inter: [
   				'Inter',
   				'system-ui',
@@ -107,6 +111,10 @@ export default {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
   			},
+			'brand-deep': 'hsl(var(--brand-deep))',
+			'brand-warm': 'hsl(var(--brand-warm))',
+			'result-url': 'hsl(var(--result-url))',
+			'result-visited': 'hsl(var(--result-visited))',
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',
@@ -146,6 +154,7 @@ export default {
   			'accordion-up': 'accordion-up 0.2s ease-out'
   		},
   		boxShadow: {
+			search: 'var(--shadow-search)',
   			'2xs': 'var(--shadow-2xs)',
   			xs: 'var(--shadow-xs)',
   			sm: 'var(--shadow-sm)',
