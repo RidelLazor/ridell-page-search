@@ -206,44 +206,84 @@ serve(async (req) => {
     };
     const dateParam = dateParams[dateRange] || '';
     
-    const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kp=${safeParam}${dateParam}`;
-    
-    const response = await fetch(searchUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-      },
-    });
+    const fetchHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.5',
+    };
 
-    if (!response.ok) {
-      console.error('Search request failed:', response.status);
+    // DuckDuckGo sometimes serves bot-check pages to datacenter IPs.
+    // Try several endpoints (GET + POST, html + lite) until one yields results.
+    const encodedQuery = encodeURIComponent(query);
+    const endpoints = [
+      { url: `https://html.duckduckgo.com/html/?q=${encodedQuery}&kp=${safeParam}${dateParam}`, method: 'GET' },
+      { url: 'https://html.duckduckgo.com/html/', method: 'POST', body: `q=${encodedQuery}&kp=${safeParam}` },
+      { url: 'https://lite.duckduckgo.com/lite/', method: 'POST', body: `q=${encodedQuery}&kp=${safeParam}` },
+      { url: `https://lite.duckduckgo.com/lite/?q=${encodedQuery}&kp=${safeParam}`, method: 'GET' },
+    ];
+
+    let html = '';
+    let usedEndpoint = '';
+    for (const ep of endpoints) {
+      try {
+        const resp = await fetch(ep.url, {
+          method: ep.method,
+          headers: ep.method === 'POST'
+            ? { ...fetchHeaders, 'Content-Type': 'application/x-www-form-urlencoded' }
+            : fetchHeaders,
+          body: ep.method === 'POST' ? ep.body : undefined,
+        });
+        if (!resp.ok) {
+          console.error(`Endpoint ${ep.url} failed:`, resp.status);
+          continue;
+        }
+        const text = await resp.text();
+        console.log(`Endpoint ${ep.url} (${ep.method}) returned ${text.length} chars`);
+        // A bot-check/anomaly page has no result markers; keep trying.
+        if (text.includes('result__a') || text.includes('result-link')) {
+          html = text;
+          usedEndpoint = ep.url;
+          break;
+        }
+        if (!html) html = text; // keep first response as last resort
+      } catch (e) {
+        console.error(`Endpoint ${ep.url} error:`, e);
+      }
+    }
+    console.log('Using results from:', usedEndpoint || 'none (no usable results page)');
+
+    if (!html) {
       return new Response(
         JSON.stringify({ success: false, error: 'Search request failed' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const html = await response.text();
-    
     // Parse the HTML to extract search results
-    let results: Array<{ 
-      title: string; 
-      url: string; 
+    let results: Array<{
+      title: string;
+      url: string;
       description: string;
       sitelinks?: Array<{ title: string; url: string; description?: string }>;
     }> = [];
-    
+
     // Check for spell correction suggestion
     let spellCorrection: string | null = null;
     const spellMatch = html.match(/Did you mean:.*?<a[^>]*>([^<]+)<\/a>/i);
     if (spellMatch) {
       spellCorrection = decodeHtmlEntities(spellMatch[1].trim());
     }
-    
-    // Extract all result links and titles
-    const linkMatches = [...html.matchAll(/<a[^>]*rel="nofollow"[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi)];
-    const snippetMatches = [...html.matchAll(/<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi)];
+
+    // Extract all result links and titles (standard html layout + lite layout)
+    let linkMatches = [...html.matchAll(/<a[^>]*rel="nofollow"[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi)];
+    let snippetMatches = [...html.matchAll(/<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi)];
+
+    if (linkMatches.length === 0) {
+      // lite.duckduckgo.com layout
+      linkMatches = [...html.matchAll(/<a[^>]*class="result-link"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi)];
+      snippetMatches = [...html.matchAll(/<td[^>]*class="result-snippet"[^>]*>([\s\S]*?)<\/td>/gi)];
+    }
+
     
     for (let i = 0; i < Math.min(linkMatches.length, 15); i++) {
       const linkMatch = linkMatches[i];
