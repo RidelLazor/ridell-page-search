@@ -292,6 +292,9 @@ serve(async (req) => {
       if (linkMatch) {
         // Clean up the URL - extract actual URL from redirect
         let url = linkMatch[1];
+        if (url.startsWith('//')) {
+          url = 'https:' + url;
+        }
         const uddgMatch = url.match(/uddg=([^&]*)/);
         if (uddgMatch) {
           url = decodeURIComponent(uddgMatch[1]);
