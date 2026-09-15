@@ -319,6 +319,63 @@ serve(async (req) => {
       }
     }
 
+    // Fallback: Bing when DuckDuckGo yields nothing (bot-check page)
+    if (results.length === 0) {
+      console.log('DuckDuckGo returned no results, falling back to Bing');
+      try {
+        const bingResp = await fetch(
+          `https://www.bing.com/search?q=${encodedQuery}&count=15${safeSearch ? '&adlt=strict' : ''}`,
+          { headers: fetchHeaders }
+        );
+        if (bingResp.ok) {
+          const bingHtml = await bingResp.text();
+          console.log(`Bing returned ${bingHtml.length} chars`);
+          const blocks = [...bingHtml.matchAll(/<li class="b_algo"[\s\S]*?<\/li>/gi)].map(m => m[0]);
+          for (const block of blocks) {
+            const linkMatch = block.match(/<h2[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
+            if (!linkMatch) continue;
+            let url = decodeHtmlEntities(linkMatch[1]);
+            // Bing wraps links in /ck/a redirects with a base64url "u=a1<base64>" param
+            if (url.includes('bing.com/ck/a')) {
+              const uParam = url.match(/[?&]u=a1([^&]+)/);
+              if (uParam) {
+                try {
+                  const b64 = uParam[1].replace(/-/g, '+').replace(/_/g, '/');
+                  url = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
+                } catch {
+                  // fall back to the cite/display URL
+                }
+              }
+              if (url.includes('bing.com/ck/a')) {
+                const citeMatch = block.match(/<cite[^>]*>([\s\S]*?)<\/cite>/i);
+                if (citeMatch) {
+                  const display = decodeHtmlEntities(citeMatch[1].replace(/<[^>]*>/g, '').trim())
+                    .split(/\s*›\s*/)[0]
+                    .replace(/\s/g, '');
+                  url = display.startsWith('http') ? display : `https://${display}`;
+                }
+              }
+            }
+            const title = decodeHtmlEntities(linkMatch[2].replace(/<[^>]*>/g, '').trim());
+            const snippetMatch =
+              block.match(/<p[^>]*class="b_lineclamp[^"]*"[^>]*>([\s\S]*?)<\/p>/i) ||
+              block.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+            const description = snippetMatch
+              ? decodeHtmlEntities(snippetMatch[1].replace(/<[^>]*>/g, '').trim()).replace(/^([A-Z][a-z]{2} \d{1,2}, \d{4}\s*·\s*)/, '')
+              : '';
+            if (url.startsWith('http') && title && !url.includes('bing.com')) {
+              results.push({ title, url, description });
+            }
+          }
+          console.log(`Bing fallback produced ${results.length} results`);
+        } else {
+          console.error('Bing request failed:', bingResp.status);
+        }
+      } catch (e) {
+        console.error('Bing fallback error:', e);
+      }
+    }
+
     // Limit to 10 results after filtering
     results = results.slice(0, 10);
 
