@@ -334,7 +334,28 @@ serve(async (req) => {
           for (const block of blocks) {
             const linkMatch = block.match(/<h2[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
             if (!linkMatch) continue;
-            const url = decodeHtmlEntities(linkMatch[1]);
+            let url = decodeHtmlEntities(linkMatch[1]);
+            // Bing wraps links in /ck/a redirects with a base64url "u=a1<base64>" param
+            if (url.includes('bing.com/ck/a')) {
+              const uParam = url.match(/[?&]u=a1([^&]+)/);
+              if (uParam) {
+                try {
+                  const b64 = uParam[1].replace(/-/g, '+').replace(/_/g, '/');
+                  url = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
+                } catch {
+                  // fall back to the cite/display URL
+                }
+              }
+              if (url.includes('bing.com/ck/a')) {
+                const citeMatch = block.match(/<cite[^>]*>([\s\S]*?)<\/cite>/i);
+                if (citeMatch) {
+                  const display = decodeHtmlEntities(citeMatch[1].replace(/<[^>]*>/g, '').trim())
+                    .split(/\s*›\s*/)[0]
+                    .replace(/\s/g, '');
+                  url = display.startsWith('http') ? display : `https://${display}`;
+                }
+              }
+            }
             const title = decodeHtmlEntities(linkMatch[2].replace(/<[^>]*>/g, '').trim());
             const snippetMatch =
               block.match(/<p[^>]*class="b_lineclamp[^"]*"[^>]*>([\s\S]*?)<\/p>/i) ||
