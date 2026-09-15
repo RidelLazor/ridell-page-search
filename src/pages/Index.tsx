@@ -16,9 +16,22 @@ const Index = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [luckyLoading, setLuckyLoading] = useState(false);
+  const [region, setRegion] = useState("");
 
   useEffect(() => {
     document.title = "Violytra";
+    try {
+      const locale = new Intl.Locale(navigator.language);
+      const code =
+        locale.region ??
+        (locale as unknown as { maximize?: () => { region?: string } }).maximize?.().region;
+      if (code) {
+        const name = new Intl.DisplayNames([navigator.language], { type: "region" }).of(code);
+        if (name) setRegion(name);
+      }
+    } catch {
+      setRegion("");
+    }
   }, []);
 
   const openSearch = () => {
