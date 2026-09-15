@@ -99,7 +99,18 @@ const Search = () => {
               <div>
                 {results.map((result, index) => (
                   <article key={`${result.url}-${index}`} className="mb-[26px]">
-                    <div className="text-xs text-result-url">{getHostname(result.url)}</div>
+                    <div className="flex items-center gap-2 text-xs text-result-url">
+                      <img
+                        src={`https://www.google.com/s2/favicons?sz=64&domain=${getHostname(result.url)}`}
+                        alt=""
+                        loading="lazy"
+                        width={16}
+                        height={16}
+                        className="h-4 w-4 shrink-0 rounded-sm bg-secondary"
+                        onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
+                      />
+                      <span className="truncate">{getHostname(result.url)}</span>
+                    </div>
                     <a
                       href={result.url}
                       target="_blank"
