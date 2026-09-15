@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Loader2, Search as SearchIcon } from "lucide-react";
+import { Search as SearchIcon } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import violytraIcon from "@/assets/violytra-icon.svg.asset.json";
 import ViolytraLogo from "@/components/ViolytraLogo";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -82,11 +83,25 @@ const Search = () => {
         </form>
       </header>
 
-      <main className="mx-auto w-[min(652px,92vw)] py-5 pb-16">
+      <main className={loading ? "min-h-[calc(100vh-69px)]" : "mx-auto w-[min(652px,92vw)] py-5 pb-16"}>
         {loading && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Searching for <strong className="font-semibold text-foreground">{initialQuery}</strong>…
+          <div
+            className="search-loader flex min-h-[calc(100vh-69px)] items-center justify-center px-6 pb-20"
+            role="status"
+            aria-label={`Finding results for ${initialQuery}`}
+          >
+            <div className="flex flex-col items-center">
+              <div className="search-loader-mark" aria-hidden="true">
+                <span className="search-loader-orbit" />
+                <span className="search-loader-orbit search-loader-orbit-delayed" />
+                <img src={violytraIcon.url} alt="" className="search-loader-icon" />
+              </div>
+              <div className="mt-8 flex items-center gap-2" aria-hidden="true">
+                <span className="search-loader-dot" />
+                <span className="search-loader-dot search-loader-dot-two" />
+                <span className="search-loader-dot search-loader-dot-three" />
+              </div>
+            </div>
           </div>
         )}
 

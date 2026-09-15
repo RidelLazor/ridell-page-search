@@ -261,6 +261,80 @@ All colors MUST be HSL.
 
 /* Mobile-specific utilities */
 @layer utilities {
+  .search-loader-mark {
+    position: relative;
+    display: grid;
+    width: 7rem;
+    height: 7rem;
+    place-items: center;
+  }
+
+  .search-loader-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    object-fit: contain;
+    animation: search-loader-breathe 1.8s ease-in-out infinite;
+  }
+
+  .search-loader-orbit {
+    position: absolute;
+    inset: 0;
+    border: 2px solid hsl(var(--border));
+    border-top-color: hsl(var(--primary));
+    border-radius: 9999px;
+    animation: search-loader-spin 1.5s linear infinite;
+  }
+
+  .search-loader-orbit-delayed {
+    inset: 0.65rem;
+    border-color: transparent;
+    border-bottom-color: hsl(var(--brand-warm));
+    animation-duration: 1.15s;
+    animation-direction: reverse;
+  }
+
+  .search-loader-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 9999px;
+    background-color: hsl(var(--primary));
+    animation: search-loader-dot 1.25s ease-in-out infinite;
+  }
+
+  .search-loader-dot-two {
+    animation-delay: 0.15s;
+  }
+
+  .search-loader-dot-three {
+    animation-delay: 0.3s;
+  }
+
+  @keyframes search-loader-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes search-loader-breathe {
+    0%, 100% { transform: scale(0.9); opacity: 0.72; }
+    50% { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes search-loader-dot {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+    30% { transform: translateY(-0.4rem); opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .search-loader-icon,
+    .search-loader-orbit,
+    .search-loader-dot {
+      animation: none;
+    }
+
+    .search-loader-icon {
+      opacity: 1;
+    }
+  }
+
   /* Safe area padding for iPhone notch */
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
