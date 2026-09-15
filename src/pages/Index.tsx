@@ -102,7 +102,7 @@ const Index = () => {
         </form>
       </main>
 
-      <footer className="bg-secondary px-6 py-3 text-sm text-muted-foreground">Nigeria</footer>
+      <footer className="bg-secondary px-6 py-3 text-sm text-muted-foreground">{region}</footer>
     </div>
   );
 };
